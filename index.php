@@ -1,0 +1,38 @@
+<?php
+session_start();
+require "db.php";
+
+$msg = "";
+
+if (isset($_POST["login"])) {
+    $user = $_POST["username"];
+    $pass = $_POST["password"];
+
+    $q = $db->prepare("SELECT * FROM users WHERE username=? AND password=?");
+    $q->execute([$user, $pass]);
+
+    if ($q->fetch()) {
+        $_SESSION["user"] = $user;
+        header("Location: home.php");
+        exit;
+    } else {
+        $msg = "Username or password is incorrect.";
+    }
+}
+?>
+<!DOCTYPE html>
+<html>
+<body>
+<h2>Login</h2>
+
+<form method="post">
+    <input type="text" name="username" placeholder="Username" required><br><br>
+    <input type="password" name="password" placeholder="Password" required><br><br>
+    <button name="login">Login</button>
+</form>
+
+<a href="register.php">Register</a>
+
+<p style='color:red;'><?= $msg ?></p>
+</body>
+</html>

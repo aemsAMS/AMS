@@ -3,58 +3,75 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TikTok Chat App</title>
+<title>TikTok Chat Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body,html{width:100%;height:100%;font-family:'Vazirmatn',sans-serif;background:#f0f2f5;}
+body{font-family:'Vazirmatn',sans-serif;background:#f0f2f5;color:#333;}
 .hidden{display:none;}
-button{cursor:pointer;}
+.container{max-width:1000px;margin:0 auto;padding:10px;}
 
 /* Auth */
-#auth{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;}
-#auth input{width:80%;max-width:300px;padding:10px;margin:5px 0;border-radius:5px;border:1px solid #ccc;}
-#auth button{padding:10px 20px;margin:10px;border:none;border-radius:5px;color:white;background:#ff2e63;}
+#auth{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;transition:all 0.3s;}
+#auth h2{margin-bottom:20px;}
+#auth input{width:100%;max-width:300px;padding:10px;margin:5px 0;border:1px solid #ccc;border-radius:5px;}
+#auth button{padding:10px 20px;margin:10px;border:none;background:#ff2e63;color:white;border-radius:5px;transition:0.3s;}
 #auth button:hover{background:#ff1b45;}
 #auth-msg{margin-top:10px;color:red;}
 
-/* Main */
-#main{width:100%;height:100vh;display:flex;flex-direction:column;}
-
 /* Tabs */
-#tabs{display:flex;}
-#tabs button{flex:1;padding:15px;font-weight:bold;border:none;background:#fff;transition:0.3s;}
+#main{display:flex;flex-direction:column;height:100vh;}
+#tabs{display:flex;border-bottom:1px solid #ccc;box-shadow:0 2px 5px rgba(0,0,0,0.1);}
+#tabs button{flex:1;padding:15px;background:#fff;border:none;font-weight:bold;transition:0.3s;}
 #tabs button.active{background:#ff2e63;color:white;}
-
-/* Sections Fullscreen */
-.section{width:100%;height:calc(100vh - 50px);overflow-y:auto;display:none;padding:10px;transition:0.3s;}
-.section.active{display:block;}
+#content{flex:1;display:flex;overflow:hidden;transition:all 0.3s;}
 
 /* Video Section */
-.video-item{margin-bottom:20px;position:relative;}
-.video-item iframe{width:100%;height:100vh;border:none;}
-.video-item button.send-link{position:absolute;bottom:20px;right:20px;padding:10px;background:#08d9d6;color:white;border:none;border-radius:5px;}
+#video-section{flex:1;padding:10px;overflow-y:auto;background:#fff;border-right:1px solid #ccc;transition:all 0.3s;}
+.video-item{margin-bottom:20px;position:relative;transition:0.3s;}
+.video-item iframe{width:100%;height:300px;border-radius:10px;}
+.video-item button.send-link{position:absolute;bottom:10px;right:10px;padding:5px 10px;background:#08d9d6;color:white;border:none;border-radius:5px;transition:0.3s;}
+.video-item button.send-link:hover{background:#06c0b0;}
 
 /* Chat Section */
-#user-list{display:flex;overflow-x:auto;margin-bottom:10px;}
-#user-list div{padding:10px 15px;background:#ff2e63;color:white;border-radius:20px;margin-right:10px;white-space:nowrap;}
-#chat-box{flex:1;overflow-y:auto;border-radius:10px;background:#f0f0f0;padding:10px;margin-bottom:10px;}
-.message{margin-bottom:10px;padding:8px 10px;border-radius:10px;max-width:70%;word-wrap:break-word;}
-.message.sent{background:#08d9d6;color:white;margin-left:auto;}
-.message.received{background:#ff2e63;color:white;margin-right:auto;}
-#chat-input{display:flex;margin-bottom:10px;}
+#chat-section{flex:1;padding:10px;display:flex;flex-direction:column;background:#fefefe;transition:all 0.3s;}
+#search-user{margin-bottom:10px;}
+#search-user input{width:100%;padding:8px;border-radius:5px;border:1px solid #ccc;}
+#user-list{flex:0 0 100px;overflow-x:auto;display:flex;margin-bottom:10px;}
+#user-list div{padding:10px 15px;background:#ff2e63;color:white;border-radius:20px;margin-right:10px;white-space:nowrap;cursor:pointer;transition:0.3s;}
+#user-list div:hover{background:#ff1b45;}
+#chat-box{flex:1;overflow-y:auto;padding:10px;border:1px solid #ccc;border-radius:10px;margin-bottom:10px;background:#f0f0f0;transition:0.3s;}
+.message{margin-bottom:10px;padding:8px 10px;border-radius:10px;max-width:70%;word-wrap:break-word;transition:0.3s;}
+.message.sent{background:#08d9d6;color:white;margin-left:auto;animation:fadeIn 0.3s;}
+.message.received{background:#ff2e63;color:white;margin-right:auto;animation:fadeIn 0.3s;}
+#chat-input{display:flex;}
 #chat-input input{flex:1;padding:10px;border-radius:5px;border:1px solid #ccc;}
-#chat-input button{padding:10px 15px;margin-left:5px;border:none;border-radius:5px;background:#ff2e63;color:white;}
+#chat-input button{padding:10px 15px;margin-left:5px;border:none;border-radius:5px;background:#ff2e63;color:white;transition:0.3s;}
+#chat-input button:hover{background:#ff1b45;}
 
-/* Manage Section */
-#manage-list div{margin-bottom:10px;padding:10px;background:#f0f0f0;border-radius:5px;}
+/* Management */
+#manage-section{flex:1;padding:10px;display:flex;flex-direction:column;background:#fff;transition:all 0.3s;}
+#manage-section input{padding:10px;border-radius:5px;border:1px solid #ccc;margin-bottom:10px;}
+#manage-section button{padding:10px 15px;border:none;border-radius:5px;background:#08d9d6;color:white;margin-bottom:10px;}
+#manage-section button:hover{background:#06c0b0;}
+#manage-list div{margin-bottom:10px;padding:8px;background:#f0f0f0;border-radius:5px;}
+
+/* Animations */
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+/* Responsive */
+@media(max-width:768px){
+  #content{flex-direction:column;}
+  #video-section,#chat-section,#manage-section{flex:1;height:50vh;border-right:none;}
+  #user-list{flex-wrap:wrap;}
+}
 </style>
 </head>
 <body>
 
 <!-- Auth -->
 <div id="auth">
-  <h2>TikTok Chat App</h2>
+  <h2>TikTok Chat Pro</h2>
   <input type="text" id="username" placeholder="نام کاربری">
   <input type="password" id="password" placeholder="رمز عبور">
   <div>
@@ -67,36 +84,45 @@ button{cursor:pointer;}
 <!-- Main -->
 <div id="main" class="hidden">
   <div id="tabs">
-    <button id="tab-videos" class="active">ویدئو</button>
+    <button id="tab-videos" class="active">تماشای ویدئو</button>
     <button id="tab-chat">چت</button>
-    <button id="tab-manage">مدیریت</button>
+    <button id="tab-manage">مدیریت ویدئو</button>
   </div>
 
-  <div id="video-section" class="section active"></div>
-  <div id="chat-section" class="section">
-    <div id="search-user"><input type="text" id="searchInput" placeholder="جستجوی کاربر..."></div>
-    <div id="user-list"></div>
-    <div id="chat-box"></div>
-    <div id="chat-input">
-      <input type="text" id="msgInput" placeholder="پیام...">
-      <button id="sendMsgBtn">ارسال</button>
-      <button id="sendImgBtn">📷</button>
-      <button id="sendAudioBtn">🎤</button>
+  <div id="content">
+    <!-- Video Section -->
+    <div id="video-section"></div>
+
+    <!-- Chat Section -->
+    <div id="chat-section" class="hidden">
+      <div id="search-user">
+        <input type="text" id="searchInput" placeholder="جستجوی کاربر...">
+      </div>
+      <div id="user-list"></div>
+      <div id="chat-box"></div>
+      <div id="chat-input">
+        <input type="text" id="msgInput" placeholder="پیام خود را بنویسید">
+        <button id="sendMsgBtn">ارسال</button>
+        <button id="sendImgBtn">📷</button>
+        <button id="sendAudioBtn">🎤</button>
+      </div>
     </div>
-  </div>
-  <div id="manage-section" class="section">
-    <input type="text" id="videoLinkInput" placeholder="لینک ویدئو TikTok">
-    <button id="addVideoBtn">اضافه کردن ویدئو</button>
-    <button id="clearVideosBtn">پاک کردن همه ویدئوها</button>
-    <div id="manage-list"></div>
+
+    <!-- Manage Section -->
+    <div id="manage-section" class="hidden">
+      <input type="text" id="videoLinkInput" placeholder="لینک ویدئو TikTok">
+      <button id="addVideoBtn">اضافه کردن ویدئو</button>
+      <button id="clearVideosBtn">پاک کردن همه ویدئوها</button>
+      <div id="manage-list"></div>
+    </div>
   </div>
 </div>
 
 <script>
 /* ===== LocalStorage Helpers ===== */
-const USERS_KEY = "ttchat_users_full";
-const CHATS_KEY = "ttchat_chats_full";
-const VIDEOS_KEY = "ttchat_videos_full";
+const USERS_KEY = "ttchat_users_adv";
+const CHATS_KEY = "ttchat_chats_adv";
+const VIDEOS_KEY = "ttchat_videos_adv";
 let currentUser = null;
 let currentChatUser = null;
 
@@ -140,22 +166,23 @@ const chatSection=document.getElementById("chat-section");
 const manageSection=document.getElementById("manage-section");
 
 function showTab(tab){
-  videoSection.classList.remove("active"); chatSection.classList.remove("active"); manageSection.classList.remove("active");
   tabVideos.classList.remove("active"); tabChat.classList.remove("active"); tabManage.classList.remove("active");
-  if(tab==="videos"){ videoSection.classList.add("active"); tabVideos.classList.add("active"); }
-  if(tab==="chat"){ chatSection.classList.add("active"); tabChat.classList.add("active"); }
-  if(tab==="manage"){ manageSection.classList.add("active"); tabManage.classList.add("active"); }
+  videoSection.style.display="none"; chatSection.style.display="none"; manageSection.style.display="none";
+  if(tab==="videos"){ tabVideos.classList.add("active"); videoSection.style.display="block"; }
+  if(tab==="chat"){ tabChat.classList.add("active"); chatSection.style.display="flex"; }
+  if(tab==="manage"){ tabManage.classList.add("active"); manageSection.style.display="flex"; }
 }
 
 tabVideos.onclick=()=>showTab("videos");
 tabChat.onclick=()=>showTab("chat");
 tabManage.onclick=()=>showTab("manage");
 
-/* ===== Convert TikTok Link to Embed ===== */
+/* ===== Helper: Convert TikTok URL to Embed ===== */
 function convertToEmbed(link){
+  // مثال لینک معمولی: https://www.tiktok.com/@username/video/7255031982033485099
   const match = link.match(/\/video\/(\d+)/);
   if(match) return `https://www.tiktok.com/embed/${match[1]}`;
-  return link;
+  return link; // اگر لینک صحیح نبود، همان را استفاده کن
 }
 
 /* ===== Video Management ===== */
@@ -165,24 +192,28 @@ const clearVideosBtn=document.getElementById("clearVideosBtn");
 const manageList=document.getElementById("manage-list");
 
 let videosLoaded=0;
+
 function loadVideosList(){
   const videos=loadVideos();
   videoSection.innerHTML="";
   manageList.innerHTML="";
-  videosLoaded=0;
+  videosLoaded = 0;
   loadMoreVideos();
   videos.forEach(link=>{
     const mDiv=document.createElement("div"); mDiv.textContent=link; manageList.appendChild(mDiv);
   });
+  document.querySelectorAll(".send-link").forEach(btn=>{
+    btn.onclick=()=>{ const idx=btn.getAttribute("data-index"); sendMessage(currentChatUser, `[TikTok Video](${loadVideos()[idx]})`); showTab("chat"); loadChat(); };
+  });
 }
+
 function loadMoreVideos(){
   const videos=loadVideos();
-  const perLoad=2;
+  const perLoad=3;
   const nextVideos=videos.slice(videosLoaded,videosLoaded+perLoad);
   nextVideos.forEach((link,index)=>{
     const vDiv=document.createElement("div"); vDiv.className="video-item";
-    vDiv.innerHTML=`<iframe src="${link}" allowfullscreen></iframe>
-      <button class="send-link" data-index="${videosLoaded+index}">ارسال در چت</button>`;
+    vDiv.innerHTML=`<iframe src="${link}" frameborder="0" allowfullscreen style="width:100%;height:300px;border-radius:10px;"></iframe><button class="send-link" data-index="${videosLoaded+index}">ارسال در چت</button>`;
     videoSection.appendChild(vDiv);
   });
   videosLoaded+=perLoad;
@@ -235,8 +266,9 @@ function loadChat(){
   messages.forEach(m=>{
     const div=document.createElement("div");
     div.className="message "+(m.sender===currentUser?"sent":"received");
-    let html=m.text.replace(/\[TikTok Video\]\((.*?)\)/g,'<iframe src="$1" frameborder="0" allowfullscreen style="width:100%;height:300px;border-radius:10px;margin-top:5px;"></iframe>')
-                 .replace(/\[Image\]\((.*?)\)/g,'<img src="$1" style="max-width:100%;border-radius:10px;margin-top:5px;">');
+    let html=m.text.replace(/\[TikTok Video\]\((.*?)\)/g,'<iframe src="$1" frameborder="0" allowfullscreen style="width:100%;height:200px;border-radius:10px;margin-top:5px;"></iframe>')
+                 .replace(/\[Image\]\((.*?)\)/g,'<img src="$1" style="max-width:100%;border-radius:10px;margin-top:5px;">')
+                 .replace(/\[Audio\]\((.*?)\)/g,'<audio controls src="$1" style="width:100%;margin-top:5px;"></audio>');
     div.innerHTML=html;
     chatBox.appendChild(div);
   });
@@ -271,10 +303,28 @@ sendImgBtn.onclick=()=>{
   fileInput.click();
 };
 
+sendAudioBtn.onclick=()=>{
+  if(!navigator.mediaDevices || !window.MediaRecorder){ alert("مرورگر شما از ضبط صدا پشتیبانی نمی‌کند"); return; }
+  navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
+    const mediaRecorder=new MediaRecorder(stream);
+    let chunks=[];
+    mediaRecorder.ondataavailable=e=>{ chunks.push(e.data); };
+    mediaRecorder.onstop=e=>{
+      const blob=new Blob(chunks,{type:'audio/webm'});
+      const url=URL.createObjectURL(blob);
+      sendMessage(currentChatUser, `[Audio](${url})`);
+      chunks=[];
+    };
+    mediaRecorder.start();
+    alert("ضبط آغاز شد. پس از پایان، OK را بزنید.");
+    setTimeout(()=>{ mediaRecorder.stop(); stream.getTracks().forEach(t=>t.stop()); },5000);
+  });
+};
+
 /* ===== Search Users ===== */
 searchInput.oninput=()=>{ loadUserList(searchInput.value.trim()); };
 
-/* ===== Infinite Scroll ===== */
+/* ===== Infinite Scroll for Videos ===== */
 videoSection.addEventListener("scroll",()=>{
   if(videoSection.scrollTop + videoSection.clientHeight >= videoSection.scrollHeight - 50){
     loadMoreVideos();

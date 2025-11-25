@@ -177,24 +177,46 @@ tabVideos.onclick=()=>showTab("videos");
 tabChat.onclick=()=>showTab("chat");
 tabManage.onclick=()=>showTab("manage");
 
+/* ===== Helper: Convert TikTok URL to Embed ===== */
+function convertToEmbed(link){
+  // مثال لینک معمولی: https://www.tiktok.com/@username/video/7255031982033485099
+  const match = link.match(/\/video\/(\d+)/);
+  if(match) return `https://www.tiktok.com/embed/${match[1]}`;
+  return link; // اگر لینک صحیح نبود، همان را استفاده کن
+}
+
 /* ===== Video Management ===== */
 const videoLinkInput=document.getElementById("videoLinkInput");
 const addVideoBtn=document.getElementById("addVideoBtn");
 const clearVideosBtn=document.getElementById("clearVideosBtn");
 const manageList=document.getElementById("manage-list");
 
+let videosLoaded=0;
+
 function loadVideosList(){
   const videos=loadVideos();
   videoSection.innerHTML="";
   manageList.innerHTML="";
-  videos.forEach((link,index)=>{
-    // Video Section
-    const vDiv=document.createElement("div"); vDiv.className="video-item";
-    vDiv.innerHTML=`<iframe src="${link}" frameborder="0" allowfullscreen></iframe><button class="send-link" data-index="${index}">ارسال در چت</button>`;
-    videoSection.appendChild(vDiv);
-    // Manage Section
+  videosLoaded = 0;
+  loadMoreVideos();
+  videos.forEach(link=>{
     const mDiv=document.createElement("div"); mDiv.textContent=link; manageList.appendChild(mDiv);
   });
+  document.querySelectorAll(".send-link").forEach(btn=>{
+    btn.onclick=()=>{ const idx=btn.getAttribute("data-index"); sendMessage(currentChatUser, `[TikTok Video](${loadVideos()[idx]})`); showTab("chat"); loadChat(); };
+  });
+}
+
+function loadMoreVideos(){
+  const videos=loadVideos();
+  const perLoad=3;
+  const nextVideos=videos.slice(videosLoaded,videosLoaded+perLoad);
+  nextVideos.forEach((link,index)=>{
+    const vDiv=document.createElement("div"); vDiv.className="video-item";
+    vDiv.innerHTML=`<iframe src="${link}" frameborder="0" allowfullscreen style="width:100%;height:300px;border-radius:10px;"></iframe><button class="send-link" data-index="${videosLoaded+index}">ارسال در چت</button>`;
+    videoSection.appendChild(vDiv);
+  });
+  videosLoaded+=perLoad;
   document.querySelectorAll(".send-link").forEach(btn=>{
     btn.onclick=()=>{ const idx=btn.getAttribute("data-index"); sendMessage(currentChatUser, `[TikTok Video](${loadVideos()[idx]})`); showTab("chat"); loadChat(); };
   });
@@ -203,8 +225,9 @@ function loadVideosList(){
 addVideoBtn.onclick=()=>{
   const link=videoLinkInput.value.trim();
   if(!link){ alert("لطفا لینک وارد کنید"); return; }
+  const embedLink = convertToEmbed(link);
   const videos=loadVideos();
-  videos.push(link); saveVideos(videos); videoLinkInput.value=""; loadVideosList();
+  videos.push(embedLink); saveVideos(videos); videoLinkInput.value=""; loadVideosList();
 };
 
 clearVideosBtn.onclick=()=>{
@@ -302,21 +325,6 @@ sendAudioBtn.onclick=()=>{
 searchInput.oninput=()=>{ loadUserList(searchInput.value.trim()); };
 
 /* ===== Infinite Scroll for Videos ===== */
-let videosLoaded=0;
-function loadMoreVideos(){
-  const videos=loadVideos();
-  const perLoad=3;
-  const nextVideos=videos.slice(videosLoaded,videosLoaded+perLoad);
-  nextVideos.forEach((link,index)=>{
-    const vDiv=document.createElement("div"); vDiv.className="video-item";
-    vDiv.innerHTML=`<iframe src="${link}" frameborder="0" allowfullscreen style="width:100%;height:300px;border-radius:10px;"></iframe><button class="send-link" data-index="${videosLoaded+index}">ارسال در چت</button>`;
-    videoSection.appendChild(vDiv);
-  });
-  videosLoaded+=perLoad;
-  document.querySelectorAll(".send-link").forEach(btn=>{
-    btn.onclick=()=>{ const idx=btn.getAttribute("data-index"); sendMessage(currentChatUser, `[TikTok Video](${loadVideos()[idx]})`); showTab("chat"); loadChat(); };
-  });
-}
 videoSection.addEventListener("scroll",()=>{
   if(videoSection.scrollTop + videoSection.clientHeight >= videoSection.scrollHeight - 50){
     loadMoreVideos();
@@ -324,4 +332,4 @@ videoSection.addEventListener("scroll",()=>{
 });
 </script>
 </body>
-</html> 
+</html>

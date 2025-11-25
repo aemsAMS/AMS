@@ -1,444 +1,371 @@
 <!doctype html>
 <html lang="fa">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>TikChat — Fullscreen TikTok-like</title>
-<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700&display=swap" rel="stylesheet">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TikChat — Minimal</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#0b0f17; --panel:#0f1720; --muted:#9aa4b2; --accent:#ff2e63; --accent2:#08d9d6;
-    --white:#ffffff;
-  }
+  /* ===== Reset & base ===== */
   *{box-sizing:border-box}
-  html,body{height:100%;margin:0;font-family:"Vazirmatn",sans-serif;background:linear-gradient(180deg,#071021,#0b0f17);color:var(--white);-webkit-font-smoothing:antialiased}
-  /* App layout */
-  #app{height:100vh;display:flex;flex-direction:column;overflow:hidden}
-  /* Top bar (minimal) */
-  header.appbar{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:transparent;z-index:30}
-  header.appbar .brand{font-weight:700;font-size:18px}
-  /* Main area */
-  .view{flex:1;position:relative;overflow:hidden}
-  /* Feed container - vertical snap */
-  .feed{
-    height:100%;width:100%;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;
+  html,body{height:100%;margin:0;font-family:'Vazirmatn',system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial; background:#eceff1; color:#111}
+  a{color:inherit}
+  button{cursor:pointer}
+
+  /* ===== App layout: full-screen sections ===== */
+  #app{height:100vh;display:flex;flex-direction:column}
+  header.topbar{height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:#f5f7f8;border-bottom:1px solid #e0e0e0}
+  header.topbar .brand{font-weight:600}
+  main.view{flex:1;position:relative;overflow:hidden}
+
+  /* bottom nav */
+  nav.bottom{height:56px;display:flex;border-top:1px solid #e0e0e0;background:#f5f7f8}
+  nav.bottom button{flex:1;border:0;background:transparent;font-weight:600}
+
+  /* Fullscreen sections */
+  .section{position:absolute;inset:56px 0 56px 0;display:none;overflow:auto;background:transparent;padding:10px}
+  .section.active{display:block}
+
+  /* ===== Feed - each item full viewport (snap) ===== */
+  .feed{height:100%;width:100%;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch}
+  .card{height:calc(100vh - 56px - 56px - 20px); /* header + nav + padding */ width:100%;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;border-radius:8px;overflow:hidden;background:#000}
+  .card iframe{width:100%;height:100%;border:0}
+  .card .overlay{position:absolute;left:12px;bottom:12px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.5)}
+
+  /* simple right side small actions (minimal) */
+  .side{position:absolute;right:12px;bottom:70px;display:flex;flex-direction:column;gap:10px}
+  .side button{width:44px;height:44px;border-radius:10px;border:0;background:rgba(255,255,255,0.06);color:#fff}
+
+  /* ===== Chat UI simple ===== */
+  .chat-container{display:flex;flex-direction:column;height:100%}
+  .search-row{display:flex;gap:8px;margin-bottom:8px}
+  .search-row input{flex:1;padding:10px;border-radius:8px;border:1px solid #ddd;background:#fff}
+  .users-row{display:flex;gap:8px;overflow:auto;padding-bottom:8px;margin-bottom:8px}
+  .user-pill{padding:8px 12px;border-radius:20px;background:#fff;border:1px solid #ddd;white-space:nowrap;cursor:pointer}
+  .messages{flex:1;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
+  .msg{max-width:72%;padding:8px;border-radius:10px;background:#fff;border:1px solid #e0e0e0}
+  .msg.me{margin-left:auto;background:#b2dfdb}
+  .composer{display:flex;gap:8px;padding-top:8px}
+  .composer input[type="text"]{flex:1;padding:10px;border-radius:8px;border:1px solid #ddd;background:#fff}
+
+  /* manage UI */
+  .manage-controls{display:flex;gap:8px;margin-bottom:10px}
+  .manage-controls input{flex:1;padding:10px;border-radius:8px;border:1px solid #ddd;background:#fff}
+
+  /* small screens adjustments */
+  @media(max-width:600px){
+    .card{height:calc(100vh - 56px - 56px - 28px)}
   }
-  .video-card{
-    height:100vh; width:100%; position:relative; scroll-snap-align:start; display:flex;align-items:flex-end;justify-content:center;
-  }
-  .video-card iframe, .video-card video{
-    position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border:0;
-    background:#000;border-radius:0;
-  }
-
-  /* overlay right buttons */
-  .side-actions{position:absolute;right:12px;bottom:120px;display:flex;flex-direction:column;gap:14px;align-items:center;z-index:40}
-  .action-btn{width:52px;height:52px;border-radius:12px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;color:var(--white);font-size:18px;backdrop-filter:blur(4px)}
-  .action-btn .count{font-size:12px;margin-top:6px;display:block;text-align:center;color:var(--muted)}
-
-  /* bottom nav bar */
-  nav.bottom-nav{height:64px;display:flex;align-items:center;justify-content:space-around;background:linear-gradient(180deg,rgba(0,0,0,0.3),rgba(0,0,0,0.6));position:relative;z-index:50}
-  nav.bottom-nav button{background:transparent;border:0;color:var(--white);font-weight:600}
-
-  /* Chat / Manage full pages */
-  .panel{position:absolute;inset:0;background:linear-gradient(180deg,#071021,#0b0f17);z-index:100;display:flex;flex-direction:column}
-  .panel.hidden{display:none}
-  .panel header{height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid rgba(255,255,255,0.03)}
-  .panel .content{flex:1;overflow:auto;padding:12px}
-
-  /* Chat UI */
-  .user-list{display:flex;gap:8px;overflow:auto;padding-bottom:10px}
-  .user-pill{padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:20px;cursor:pointer;white-space:nowrap}
-  .chat-window{display:flex;flex-direction:column;height:100%}
-  .messages{flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:8px}
-  .msg{max-width:72%;padding:10px;border-radius:12px;background:rgba(255,255,255,0.04)}
-  .msg.me{margin-left:auto;background:linear-gradient(90deg,var(--accent2),#07b3a8);color:#001}
-  .composer{display:flex;gap:8px;padding:8px;border-top:1px solid rgba(255,255,255,0.03)}
-  .composer input[type=text]{flex:1;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--white)}
-
-  /* Manage UI */
-  .manage-controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-  .manage-controls input{flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--white)}
-  .manage-controls button{padding:10px 12px;border-radius:8px;border:0;background:var(--accent);color:#fff}
-
-  /* small responsive tweaks */
-  @media(min-width:900px){
-    .side-actions{right:28px}
-    nav.bottom-nav{position:relative}
-  }
-  /* helper */
-  .muted{color:var(--muted);font-size:13px}
-  .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:8px;color:var(--white)}
-  a.link{color:var(--accent2)}
 </style>
 </head>
 <body>
 <div id="app">
-  <header class="appbar">
-    <div class="brand">TikChat</div>
-    <div id="userBadge" class="muted"></div>
+  <header class="topbar">
+    <div class="brand">TikChat (Minimal)</div>
+    <div id="badge" style="font-size:14px;color:#666"></div>
   </header>
 
   <main class="view">
-    <!-- Feed -->
-    <div id="feed" class="feed" aria-live="polite"></div>
+    <!-- Feed section -->
+    <section id="home" class="section active" aria-label="feed">
+      <div id="feed" class="feed" tabindex="0"></div>
+    </section>
 
-    <!-- Chat panel (full) -->
-    <div id="chatPanel" class="panel hidden" role="dialog" aria-modal="true">
-      <header>
-        <div>چت</div>
-        <div><button id="closeChat" class="btn-ghost">بستن</button></div>
-      </header>
-      <div class="content">
-        <div class="muted">جستجو و انتخاب کاربر</div>
-        <div style="height:8px"></div>
-        <div style="display:flex;gap:8px">
-          <input id="searchUserInput" placeholder="جستجوی نام کاربری..." style="flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--white)">
-          <button id="newChatBtn" class="btn-ghost">شروع</button>
+    <!-- Chat section -->
+    <section id="chat" class="section" aria-label="chat">
+      <div class="chat-container">
+        <div class="search-row">
+          <input id="searchUser" placeholder="جستجوی نام کاربری یا بنویس برای ایجاد..." />
+          <button id="startChatBtn">شروع</button>
         </div>
-        <div id="userList" class="user-list" style="margin-top:12px"></div>
-
-        <div style="height:12px"></div>
-
-        <div id="chatArea" class="chat-window hidden">
-          <div id="chatWith" style="padding:6px 0;font-weight:600"></div>
-          <div id="messages" class="messages"></div>
-          <div class="composer">
-            <input id="chatInput" type="text" placeholder="پیام..." />
-            <button id="sendTextBtn" class="btn-ghost">ارسال</button>
-            <button id="attachImageBtn" class="btn-ghost">📷</button>
-            <button id="recordAudioBtn" class="btn-ghost">🎤 ضبط</button>
-          </div>
+        <div id="usersRow" class="users-row"></div>
+        <div id="messages" class="messages"></div>
+        <div class="composer">
+          <input id="textMsg" type="text" placeholder="پیام..." />
+          <button id="sendText">ارسال</button>
+          <button id="attachImg">📷</button>
+          <button id="recAudio">🎤</button>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Manage panel (full) -->
-    <div id="managePanel" class="panel hidden">
-      <header>
-        <div>مدیریت ویدئوها</div>
-        <div><button id="closeManage" class="btn-ghost">بستن</button></div>
-      </header>
-      <div class="content">
+    <!-- Manage section -->
+    <section id="manage" class="section" aria-label="manage">
+      <div>
         <div class="manage-controls">
-          <input id="videoLink" placeholder="قرار دادن لینک TikTok (هر نوع لینک معمولی یا embed)" />
-          <button id="addVideoBtn">افزودن</button>
-          <button id="clearAllBtn">پاک کردن همه</button>
+          <input id="videoInput" placeholder="لینک TikTok (embed یا معمولی)" />
+          <button id="addVideo">افزودن</button>
+          <button id="clearVideos">پاک کردن همه</button>
         </div>
         <div id="manageList"></div>
-        <div style="height:24px"></div>
-        <div class="muted">توضیح: لینک معمولی تیک‌تاک (https://www.tiktok.com/@user/video/ID) به‌صورت خودکار به نسخه embed تبدیل می‌شود.</div>
       </div>
-    </div>
+    </section>
   </main>
 
-  <nav class="bottom-nav" aria-label="navigation">
-    <button id="navHome">خانه</button>
-    <button id="navChat">چت</button>
-    <button id="navManage">مدیریت</button>
+  <nav class="bottom" role="navigation" aria-label="main nav">
+    <button id="btnHome">خانه</button>
+    <button id="btnChat">چت</button>
+    <button id="btnManage">مدیریت</button>
   </nav>
 </div>
 
 <script>
-/* ======= Storage Keys ======= */
-const USERS_KEY = 'tiktok_chat_users_v1';
-const CHATS_KEY = 'tiktok_chat_msgs_v1';
-const VIDEOS_KEY = 'tiktok_chat_videos_v1';
+/* ===== Keys ===== */
+const USERS_KEY = 'tc_min_users_v1';
+const CHATS_KEY = 'tc_min_chats_v1';
+const VIDEOS_KEY = 'tc_min_videos_v1';
 
-/* ======= App State ======= */
+/* ===== Utilities ===== */
+function load(key, fallback){ try{ return JSON.parse(localStorage.getItem(key)) || fallback; }catch(e){ return fallback; } }
+function save(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+function uid(){ return Math.random().toString(36).slice(2,9); }
+
+/* ===== Initial data if empty ===== */
+if(!localStorage.getItem(USERS_KEY)){
+  const sample = { 'alice':'123', 'bob':'123' };
+  save(USERS_KEY, sample);
+}
+if(!localStorage.getItem(VIDEOS_KEY)){
+  save(VIDEOS_KEY, [
+    // sample embed links — these may or may not exist; you can add your own links
+    'https://www.tiktok.com/embed/7163153089386168838',
+    'https://www.tiktok.com/embed/7183459084386578434'
+  ]);
+}
+if(!localStorage.getItem(CHATS_KEY)) save(CHATS_KEY, {});
+
+/* ===== App State ===== */
 let state = {
   currentUser: null,
-  currentChatTarget: null,
+  currentTarget: null,
   videosLoaded: 0,
   perLoad: 1
 };
 
-/* ======= Helpers: LocalStorage ======= */
-function loadJSON(key, fallback){ try{ return JSON.parse(localStorage.getItem(key)) || fallback; } catch(e){ return fallback; } }
-function saveJSON(key, obj){ localStorage.setItem(key, JSON.stringify(obj)); }
-
-function ensureInitialData(){
-  if(!localStorage.getItem(USERS_KEY)){
-    // create a sample user for demo: user1/password
-    const u = { 'alice':'pass', 'bob':'pass' };
-    saveJSON(USERS_KEY,u);
-  }
-  if(!localStorage.getItem(VIDEOS_KEY)){
-    // sample embed links (these are embed URLs or will be converted)
-    const sample = [
-      'https://www.tiktok.com/embed/7163153089386168838',
-      'https://www.tiktok.com/embed/7183459084386578434',
-      'https://www.tiktok.com/embed/7191234567890123456'
-    ];
-    saveJSON(VIDEOS_KEY,sample);
-  }
-  if(!localStorage.getItem(CHATS_KEY)) saveJSON(CHATS_KEY,{});
-}
-ensureInitialData();
-
-/* ======= UI refs ======= */
-const feed = document.getElementById('feed');
-const userBadge = document.getElementById('userBadge');
-
-const chatPanel = document.getElementById('chatPanel');
-const managePanel = document.getElementById('managePanel');
-const navHome = document.getElementById('navHome');
-const navChat = document.getElementById('navChat');
-const navManage = document.getElementById('navManage');
-
-/* ======= Auth at first use (simple prompt) ======= */
-function askLogin(){
-  // simple modal prompt for username/password using prompt() to keep single-file minimal
-  let users = loadJSON(USERS_KEY,{});
-  const username = prompt("نام کاربری را وارد کنید (برای نمونه: alice یا bob)").trim();
-  if(!username) return askLogin();
-  if(!users[username]){
-    const create = confirm("کاربری موجود نیست — می‌خواهید بسازید؟");
-    if(!create) return askLogin();
-    const pass = prompt("رمز عبور را وارد کنید:");
-    users[username]=pass || '';
-    saveJSON(USERS_KEY,users);
-    state.currentUser = username;
-    userBadge.textContent = username;
-    alert('ثبت نام انجام شد و وارد شدی.');
-    return initAfterLogin();
-  } else {
-    const pass = prompt("رمز عبور را وارد کنید:");
-    if(users[username] !== pass){
-      alert('رمز اشتباه است'); return askLogin();
+/* ===== Simple auth flow (prompt-based, minimal UI) ===== */
+async function authFlow(){
+  // try to ask username/password using simple prompts to keep UI minimal
+  while(true){
+    const username = prompt('نام کاربری را وارد کنید (مثال: alice)').trim();
+    if(!username) continue;
+    const users = load(USERS_KEY, {});
+    if(users[username]){
+      const pass = prompt('رمز عبور را وارد کنید:');
+      if(pass === users[username]){ state.currentUser = username; break; }
+      else { alert('رمز اشتباه'); continue; }
+    } else {
+      if(confirm('کاربر وجود ندارد — می‌خواهید بسازید؟')){
+        const pass = prompt('رمز عبور جدید:') || '';
+        users[username] = pass;
+        save(USERS_KEY, users);
+        state.currentUser = username;
+        break;
+      } else continue;
     }
-    state.currentUser = username;
-    userBadge.textContent = username;
-    return initAfterLogin();
   }
+  document.getElementById('badge').textContent = state.currentUser;
+  initAfterAuth();
 }
 
-/* ======= Init after login ======= */
-function initAfterLogin(){
-  // render first batch
-  state.videosLoaded = 0;
-  feed.innerHTML = '';
-  loadMoreVideos();
-  // setup bottom nav
-  showTab('home');
-  // update chat user list UI
-  renderUserList();
+/* ===== Section navigation ===== */
+const homeSec = document.getElementById('home');
+const chatSec = document.getElementById('chat');
+const manageSec = document.getElementById('manage');
+function show(section){
+  [homeSec,chatSec,manageSec].forEach(s=>s.classList.remove('active'));
+  section.classList.add('active');
+}
+document.getElementById('btnHome').onclick = ()=>show(homeSec);
+document.getElementById('btnChat').onclick = ()=>{ show(chatSec); renderUsers(); renderMessages(); };
+document.getElementById('btnManage').onclick = ()=>{ show(manageSec); renderManage(); };
+
+/* ===== Convert link to embed ===== */
+function toEmbed(url){
+  if(!url) return url;
+  url = url.trim();
+  if(url.includes('/embed/')) return url;
+  const m = url.match(/\/video\/(\d+)/);
+  if(m) return 'https://www.tiktok.com/embed/' + m[1];
+  // if short link (vm.tiktok...), cannot resolve without server — return as-is (may not embed)
+  return url;
 }
 
-/* ======= Conversion: make embed URL from common TikTok links ======= */
-function toEmbedURL(link){
-  // try to find numeric video id
-  try {
-    // normalize
-    link = link.trim();
-    // if already embed return as is
-    if(link.includes('/embed/')) return link;
-    // find /video/{id}
-    const m = link.match(/\/video\/(\d+)/);
-    if(m) return `https://www.tiktok.com/embed/${m[1]}`;
-    // short url like vm.tiktok.com/xxxxx -> cannot resolve without server; return as-is
-    return link;
-  } catch(e){ return link; }
-}
-
-/* ======= Load / Infinite feed ======= */
-function loadMoreVideos(){
-  const videos = loadJSON(VIDEOS_KEY,[]);
+/* ===== Feed rendering & infinite load ===== */
+const feedEl = document.getElementById('feed');
+function loadMore(){
+  const videos = load(VIDEOS_KEY, []);
   if(state.videosLoaded >= videos.length) return;
   const to = Math.min(state.videosLoaded + state.perLoad, videos.length);
   for(let i=state.videosLoaded;i<to;i++){
-    const link = videos[i];
-    const card = createVideoCard(link, i);
-    feed.appendChild(card);
+    const v = videos[i];
+    const card = document.createElement('div'); card.className='card';
+    const iframe = document.createElement('iframe'); iframe.src = v; iframe.loading='lazy'; iframe.allow='autoplay; fullscreen';
+    card.appendChild(iframe);
+    const overlay = document.createElement('div'); overlay.className='overlay'; overlay.innerText = `ویدئو ${i+1}`;
+    card.appendChild(overlay);
+    const side = document.createElement('div'); side.className='side';
+    const sendBtn = document.createElement('button'); sendBtn.textContent='✉'; sendBtn.title='ارسال به چت';
+    sendBtn.onclick = ()=>{ if(!state.currentTarget){ alert('ابتدا در بخش چت یک کاربر انتخاب کن'); show(chatSec); return; } sendToChat(state.currentTarget, `[TikTok Video](${v})`); show(chatSec); renderMessages(); };
+    side.appendChild(sendBtn);
+    card.appendChild(side);
+    feedEl.appendChild(card);
   }
   state.videosLoaded = to;
 }
-function createVideoCard(link, index){
-  const card = document.createElement('div');
-  card.className = 'video-card';
-  // iframe embed
-  const iframe = document.createElement('iframe');
-  iframe.src = link;
-  iframe.allow = "autoplay; fullscreen; picture-in-picture";
-  iframe.loading = 'lazy';
-  card.appendChild(iframe);
+feedEl.addEventListener('scroll', ()=>{ if(feedEl.scrollTop + feedEl.clientHeight >= feedEl.scrollHeight - 60) loadMore(); });
 
-  // right-side actions
-  const side = document.createElement('div'); side.className='side-actions';
-  // like
-  const like = document.createElement('div'); like.className='action-btn'; like.innerHTML='❤<div class="count">120K</div>';
-  // comment
-  const comment = document.createElement('div'); comment.className='action-btn'; comment.innerHTML='💬<div class="count">1.2K</div>';
-  // share
-  const share = document.createElement('div'); share.className='action-btn'; share.innerHTML='↗<div class="count">اشتراک</div>';
-  // send to chat
-  const send = document.createElement('div'); send.className='action-btn'; send.innerHTML='✉️<div class="count">ارسال</div>';
-  send.onclick = ()=>{ if(!state.currentChatTarget){ alert('ابتدا به تب چت رفته و یک کاربر انتخاب کنید.'); showTab('chat'); return; } sendMessageTo(state.currentChatTarget, `[TikTok Video](${link})`); showTab('chat'); };
-  side.appendChild(like); side.appendChild(comment); side.appendChild(share); side.appendChild(send);
-  card.appendChild(side);
-
-  // footer overlay: video index / info
-  const footer = document.createElement('div'); footer.style.position='absolute'; footer.style.left='12px'; footer.style.bottom='18px'; footer.innerHTML=`<div style="font-weight:700">ویدئو ${index+1}</div><div class="muted" style="font-size:13px">توضیح نمونه</div>`;
-  card.appendChild(footer);
-
-  return card;
-}
-
-/* infinite on scroll */
-feed.addEventListener('scroll', ()=> {
-  if(feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 60){
-    loadMoreVideos();
-  }
-});
-
-/* ======= Bottom nav & panels ======= */
-function showTab(tab){
-  if(tab==='home'){ feed.style.display='block'; chatPanel.classList.add('hidden'); managePanel.classList.add('hidden'); navHome.classList.add('active'); navChat.classList.remove('active'); navManage.classList.remove('active'); }
-  if(tab==='chat'){ feed.style.display='none'; chatPanel.classList.remove('hidden'); managePanel.classList.add('hidden'); navHome.classList.remove('active'); navChat.classList.add('active'); navManage.classList.remove('active'); renderUserList(); }
-  if(tab==='manage'){ feed.style.display='none'; chatPanel.classList.add('hidden'); managePanel.classList.remove('hidden'); navHome.classList.remove('active'); navChat.classList.remove('active'); navManage.classList.add('active'); renderManageList(); }
-}
-navHome.addEventListener('click', ()=> showTab('home'));
-navChat.addEventListener('click', ()=> showTab('chat'));
-navManage.addEventListener('click', ()=> showTab('manage'));
-document.getElementById('closeChat').onclick = ()=> showTab('home');
-document.getElementById('closeManage').onclick = ()=> showTab('home');
-
-/* ======= Manage: add/clear videos ======= */
-document.getElementById('addVideoBtn').onclick = ()=>{
-  const raw = document.getElementById('videoLink').value.trim();
-  if(!raw){ alert('لطفا لینک وارد کنید'); return; }
-  const embed = toEmbedURL(raw);
-  const videos = loadJSON(VIDEOS_KEY,[]);
-  videos.unshift(embed); // newest at top; because feed loads sequentially, we can put newest first or last; here newest first
-  saveJSON(VIDEOS_KEY,videos);
-  document.getElementById('videoLink').value='';
+/* ===== Manage: add/clear/render ===== */
+document.getElementById('addVideo').onclick = ()=>{
+  const raw = document.getElementById('videoInput').value.trim();
+  if(!raw){ alert('لینک وارد کن'); return; }
+  const embed = toEmbed(raw);
+  const arr = load(VIDEOS_KEY, []);
+  arr.unshift(embed); // newest first
+  save(VIDEOS_KEY, arr);
+  document.getElementById('videoInput').value='';
   // reset feed and reload
-  feed.innerHTML=''; state.videosLoaded=0; loadMoreVideos();
-  renderManageList();
+  feedEl.innerHTML = '';
+  state.videosLoaded = 0;
+  loadMore();
+  renderManage();
 };
-document.getElementById('clearAllBtn').onclick = ()=>{
-  if(confirm('پاک کردن همه ویدئوها؟')){ saveJSON(VIDEOS_KEY,[]); feed.innerHTML=''; state.videosLoaded=0; renderManageList(); }
+document.getElementById('clearVideos').onclick = ()=>{
+  if(confirm('پاک کردن همه ویدئوها؟')){ save(VIDEOS_KEY, []); feedEl.innerHTML=''; state.videosLoaded=0; renderManage(); }
 };
-function renderManageList(){
-  const list = document.getElementById('manageList');
-  list.innerHTML='';
-  const videos = loadJSON(VIDEOS_KEY,[]);
-  videos.forEach((v,i)=>{
-    const d = document.createElement('div'); d.style.display='flex'; d.style.justifyContent='space-between'; d.style.alignItems='center';
-    const left = document.createElement('div'); left.style.maxWidth='78%'; left.style.overflow='hidden'; left.style.textOverflow='ellipsis'; left.textContent = v;
-    const rm = document.createElement('button'); rm.textContent='حذف'; rm.className='btn-ghost'; rm.onclick=()=>{
-      videos.splice(i,1); saveJSON(VIDEOS_KEY,videos); renderManageList(); feed.innerHTML=''; state.videosLoaded=0; loadMoreVideos();
-    };
-    d.appendChild(left); d.appendChild(rm); list.appendChild(d);
+function renderManage(){
+  const list = document.getElementById('manageList'); list.innerHTML='';
+  const videos = load(VIDEOS_KEY, []);
+  videos.forEach((v,idx)=>{
+    const row = document.createElement('div'); row.style.display='flex'; row.style.justifyContent='space-between'; row.style.alignItems='center'; row.style.padding='8px'; row.style.marginBottom='6px'; row.style.background='#fff'; row.style.border='1px solid #eee'; row.style.borderRadius='8px';
+    const left = document.createElement('div'); left.style.maxWidth='80%'; left.style.overflow='hidden'; left.style.textOverflow='ellipsis'; left.textContent = v;
+    const rm = document.createElement('button'); rm.textContent='حذف'; rm.onclick = ()=>{ videos.splice(idx,1); save(VIDEOS_KEY,videos); renderManage(); feedEl.innerHTML=''; state.videosLoaded=0; loadMore(); };
+    row.appendChild(left); row.appendChild(rm); list.appendChild(row);
   });
 }
 
-/* ======= Chat functions ======= */
-function renderUserList(){
-  const ul = document.getElementById('userList'); ul.innerHTML='';
-  const users = loadJSON(USERS_KEY,{});
+/* ===== Chat: users, messages, send/attach/record ===== */
+function renderUsers(filter=''){
+  const wr = document.getElementById('usersRow'); wr.innerHTML='';
+  const users = load(USERS_KEY, {});
   Object.keys(users).forEach(u=>{
-    if(u === state.currentUser) return;
+    if(u===state.currentUser) return;
+    if(filter && !u.includes(filter)) return;
     const pill = document.createElement('div'); pill.className='user-pill'; pill.textContent = u;
-    pill.onclick = ()=> {
-      state.currentChatTarget = u;
-      document.getElementById('chatArea').classList.remove('hidden');
-      document.getElementById('chatWith').textContent = 'چت با ' + u;
-      renderMessages();
-      showTab('chat');
-    };
-    ul.appendChild(pill);
+    pill.onclick = ()=>{ state.currentTarget = u; renderMessages(); };
+    wr.appendChild(pill);
   });
 }
-document.getElementById('newChatBtn').onclick = ()=>{
-  const q = document.getElementById('searchUserInput').value.trim();
-  if(!q){ alert('نام کاربر را وارد کنید'); return; }
-  const users = loadJSON(USERS_KEY,{});
-  if(!users[q]){ if(confirm('کاربر موجود نیست — ایجاد شود؟')){ users[q]=''; saveJSON(USERS_KEY,users); } else return; }
-  renderUserList();
+document.getElementById('startChatBtn').onclick = ()=>{
+  const q = document.getElementById('searchUser').value.trim();
+  if(!q){ alert('نام را وارد کن'); return; }
+  const users = load(USERS_KEY, {});
+  if(!users[q]){ if(confirm('کاربر وجود ندارد — ایجاد شود؟')){ users[q]=''; save(USERS_KEY, users); } else return; }
+  renderUsers(q);
 };
-
-/* Messages store: key by sorted pair */
-function chatId(a,b){ return [a,b].sort().join('__'); }
-function loadChats(){ return loadJSON(CHATS_KEY,{}); }
-function saveChats(ch){ saveJSON(CHATS_KEY,ch); }
+/* Messages store helpers */
+function chatKey(a,b){ return [a,b].sort().join('__'); }
+function loadChats(){ return load(CHATS_KEY, {}); }
+function saveChats(obj){ save(CHATS_KEY, obj); }
 function renderMessages(){
   const box = document.getElementById('messages'); box.innerHTML='';
-  if(!state.currentChatTarget) return;
-  const chats = loadChats(); const id = chatId(state.currentUser, state.currentChatTarget); const msgs = chats[id]||[];
-  msgs.forEach(m=>{
-    const div = document.createElement('div'); div.className='msg ' + (m.sender===state.currentUser ? 'me' : '');
-    // render content: detect tags: [TikTok Video](url), [Image](dataurl), [Audio](bloburl)
+  if(!state.currentTarget){ box.innerHTML = '<div class="muted">یک کاربر انتخاب کن یا ایجاد کن</div>'; return; }
+  const id = chatKey(state.currentUser, state.currentTarget);
+  const chats = loadChats(); const arr = chats[id] || [];
+  arr.forEach(m=>{
+    const d = document.createElement('div'); d.className = 'msg ' + (m.sender===state.currentUser ? 'me' : '');
     let html = m.text
-      .replace(/\[TikTok Video\]\((.*?)\)/g, '<iframe src="$1" allowfullscreen style="width:100%;height:60vh;border:0;border-radius:12px;margin-top:6px"></iframe>')
-      .replace(/\[Image\]\((.*?)\)/g, '<img src="$1" style="max-width:100%;border-radius:10px;margin-top:6px">')
-      .replace(/\[Audio\]\((.*?)\)/g, '<audio controls src="$1" style="width:100%;margin-top:6px"></audio>');
-    div.innerHTML = html;
-    div.classList.add('msg');
-    if(m.sender===state.currentUser) div.classList.add('me');
-    box.appendChild(div);
+      .replace(/\[TikTok Video\]\((.*?)\)/g, '<iframe src="$1" allowfullscreen style="width:100%;height:380px;border:0;border-radius:8px"></iframe>')
+      .replace(/\[Image\]\((.*?)\)/g, '<img src="$1" style="max-width:100%;border-radius:8px">')
+      .replace(/\[Audio\]\((.*?)\)/g, '<audio controls src="$1" style="width:100%"></audio>');
+    d.innerHTML = html;
+    box.appendChild(d);
   });
   box.scrollTop = box.scrollHeight;
 }
-
-function sendMessageTo(target, text){
-  if(!target){ alert('گیرنده انتخاب نشده'); return; }
-  const chats = loadChats(); const id = chatId(state.currentUser, target);
-  chats[id] = chats[id] || [];
-  chats[id].push({sender: state.currentUser, text: text, time: Date.now()});
+function sendToChat(target, text){
+  if(!target){ alert('ابتدا یک مخاطب انتخاب کن'); return; }
+  const chats = loadChats();
+  const k = chatKey(state.currentUser, target);
+  chats[k] = chats[k] || [];
+  chats[k].push({sender: state.currentUser, text, time: Date.now()});
   saveChats(chats);
-  if(state.currentChatTarget === target) renderMessages();
+  if(state.currentTarget === target) renderMessages();
 }
-
-/* composer actions */
-document.getElementById('sendTextBtn').onclick = ()=>{
-  const input = document.getElementById('chatInput'); const txt = input.value.trim();
-  if(!txt || !state.currentChatTarget){ if(!state.currentChatTarget) alert('ابتدا کاربر را انتخاب کنید'); return; }
-  sendMessageTo(state.currentChatTarget, txt);
-  input.value='';
+/* send text */
+document.getElementById('sendText').onclick = ()=>{
+  const t = document.getElementById('textMsg').value.trim();
+  if(!t) return;
+  if(!state.currentTarget){ alert('ابتدا مخاطب را انتخاب کن'); return; }
+  sendToChat(state.currentTarget, t);
+  document.getElementById('textMsg').value='';
 };
-
-document.getElementById('attachImageBtn').onclick = ()=>{
-  if(!state.currentChatTarget){ alert('ابتدا کاربر را انتخاب کنید'); return; }
+/* attach image */
+document.getElementById('attachImg').onclick = ()=>{
+  if(!state.currentTarget){ alert('ابتدا مخاطب را انتخاب کن'); return; }
   const f = document.createElement('input'); f.type='file'; f.accept='image/*'; f.onchange = ()=>{
     const file = f.files[0]; if(!file) return;
-    const reader = new FileReader(); reader.onload = ()=> {
-      sendMessageTo(state.currentChatTarget, `[Image](${reader.result})`);
-    }; reader.readAsDataURL(file);
+    const r = new FileReader();
+    r.onload = ()=> sendToChat(state.currentTarget, `[Image](${r.result})`);
+    r.readAsDataURL(file);
   }; f.click();
 };
 
-/* ======= Audio recording (MediaRecorder) ======= */
-let recorder = null, chunks = [];
-document.getElementById('recordAudioBtn').onclick = async ()=>{
-  if(!state.currentChatTarget){ alert('ابتدا کاربر را انتخاب کنید'); return; }
-  if(!navigator.mediaDevices || !window.MediaRecorder){ alert('مرورگر شما از ضبط صدا پشتیبانی نمی‌کند یا نیاز به HTTPS دارد'); return; }
+/* record audio — convert blob to dataURL and store (persist across reloads) */
+document.getElementById('recAudio').onclick = async ()=>{
+  if(!state.currentTarget){ alert('ابتدا مخاطب را انتخاب کن'); return; }
+  if(!navigator.mediaDevices || !window.MediaRecorder){ alert('ضبط صدا پشتیبانی نمی‌شود (نیاز به HTTPS یا مرورگر مدرن)'); return; }
   try{
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    recorder = new MediaRecorder(stream);
-    chunks = [];
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    const recorder = new MediaRecorder(stream);
+    const chunks = [];
     recorder.ondataavailable = e => chunks.push(e.data);
-    recorder.onstop = () => {
-      const blob = new Blob(chunks, { type: 'audio/webm' });
-      const url = URL.createObjectURL(blob);
-      sendMessageTo(state.currentChatTarget, `[Audio](${url})`);
-      // stop tracks
-      stream.getTracks().forEach(t => t.stop());
+    recorder.onstop = async () => {
+      const blob = new Blob(chunks,{type:'audio/webm'});
+      // convert blob -> dataURL to persist in localStorage
+      const reader = new FileReader();
+      reader.onload = ()=> {
+        const dataUrl = reader.result;
+        sendToChat(state.currentTarget, `[Audio](${dataUrl})`);
+      };
+      reader.readAsDataURL(blob);
+      stream.getTracks().forEach(t=>t.stop());
     };
     recorder.start();
-    alert('ضبط شروع شد — برای توقف OK را بزنید (یا پس از 6 ثانیه خودکار متوقف می‌شود).');
-    // auto stop after 6s to avoid huge blobs in LocalStorage
-    setTimeout(()=>{ if(recorder && recorder.state === 'recording') recorder.stop(); }, 6000);
-  }catch(err){
-    alert('دسترسی ضبط صدا رد شد یا مشکل دیگری وجود دارد: ' + err.message);
+    alert('ضبط آغاز شد — بعد از پایان روی OK کلیک کن یا خودکار بعد از 6 ثانیه متوقف می‌شود.');
+    // auto stop after 6s to avoid too large blobs
+    setTimeout(()=>{ if(recorder.state === 'recording') recorder.stop(); }, 6000);
+  } catch(err){
+    alert('دسترسی ضبط صدا رد شد یا خطا: ' + err.message);
   }
 };
 
-/* when navigating to chat, re-render messages every 1s to show updates */
-setInterval(()=>{ if(!chatPanel.classList.contains('hidden')) renderMessages(); }, 1000);
+/* ===== Render users & init after auth ===== */
+function initAfterAuth(){
+  document.getElementById('badge').textContent = state.currentUser;
+  // prepare feed
+  feedEl.innerHTML = '';
+  state.videosLoaded = 0;
+  loadMore();
+}
+function renderUsers(){ renderUsersList(); renderMessages(); }
+function renderUsersList(){
+  const q = document.getElementById('searchUser').value.trim();
+  const wr = document.getElementById('usersRow'); wr.innerHTML='';
+  const users = load(USERS_KEY, {});
+  Object.keys(users).forEach(u=>{
+    if(u===state.currentUser) return;
+    if(q && !u.includes(q)) return;
+    const pill = document.createElement('div'); pill.className='user-pill'; pill.textContent=u;
+    pill.onclick = ()=>{ state.currentTarget = u; renderMessages(); };
+    wr.appendChild(pill);
+  });
+}
 
-/* ======= Start app ======= */
-askLogin();
+/* when opening chat tab, update user list reactively */
+document.getElementById('searchUser').addEventListener('input', ()=> renderUsersList());
+
+/* ===== start ===== */
+authFlow();
 </script>
 </body>
-            </html> 
+  </html> 

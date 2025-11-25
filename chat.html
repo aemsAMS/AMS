@@ -1,7 +1,7 @@
 <?php
 session_start();
-require "db.php";
-if (!isset($_SESSION["user"])) { header("Location:index.php"); exit; }
+require "db.html";
+if (!isset($_SESSION["user"])) { header("Location:index.html"); exit; }
 
 $user = $_SESSION["user"];
 
@@ -24,14 +24,14 @@ $users = array_unique($users);
     <p>No chats yet.</p>
 <?php else: ?>
     <?php foreach ($users as $u): ?>
-        <p><a href="chat_room.php?user=<?= $u ?>"><?= $u ?></a></p>
+        <p><a href="chat_room.html?user=<?= $u ?>"><?= $u ?></a></p>
     <?php endforeach; ?>
 <?php endif; ?>
 
 <br><hr><br>
 
 <h3>Start New Chat</h3>
-<form method="get" action="chat_room.php">
+<form method="get" action="chat_room.html">
     <input type="text" name="user" placeholder="Username">
     <button>Start</button>
 </form>

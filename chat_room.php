@@ -1,0 +1,48 @@
+<?php
+session_start();
+require "db.php";
+
+if (!isset($_SESSION["user"])) { header("Location:index.php"); exit; }
+
+$me = $_SESSION["user"];
+$other = $_GET["user"] ?? "";
+
+if (isset($_POST["message"]) || isset($_POST["tiktok_url"])) {
+    $other = $_POST["receiver"];
+    $msg = $_POST["message"] ?? "";
+    $tik = $_POST["tiktok_url"] ?? "";
+
+    $q = $db->prepare("INSERT INTO messages (sender, receiver, message, tiktok_url, time) VALUES (?,?,?,?,datetime('now'))");
+    $q->execute([$me, $other, $msg, $tik]);
+}
+
+$q = $db->prepare("SELECT * FROM messages WHERE (sender=? AND receiver=?) OR (sender=? AND receiver=?) ORDER BY id ASC");
+$q->execute([$me, $other, $other, $me]);
+$messages = $q->fetchAll();
+?>
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Chat with <?= $other ?></h2>
+
+<div style="border:1px solid #ccc; padding:10px; height:300px; overflow:auto;">
+    <?php foreach ($messages as $m): ?>
+        <p><b><?= $m["sender"] ?>:</b> <?= $m["message"] ?></p>
+        <?php if ($m["tiktok_url"]): ?>
+            <iframe width="200" height="350" src="<?= $m["tiktok_url"] ?>"></iframe>
+        <?php endif; ?>
+        <hr>
+    <?php endforeach; ?>
+</div>
+
+<br>
+
+<form method="post">
+    <input type="hidden" name="receiver" value="<?= $other ?>">
+    <input type="text" name="message" placeholder="Write message..." style="width:250px;">
+    <button>Send</button>
+</form>
+
+</body>
+</html>

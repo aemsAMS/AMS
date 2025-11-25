@@ -1,6 +1,6 @@
 <?php
 session_start();
-require "db.php";
+require "db.html";
 
 $msg = "";
 
@@ -13,7 +13,7 @@ if (isset($_POST["login"])) {
 
     if ($q->fetch()) {
         $_SESSION["user"] = $user;
-        header("Location: home.php");
+        header("Location: home.html");
         exit;
     } else {
         $msg = "Username or password is incorrect.";
@@ -31,7 +31,7 @@ if (isset($_POST["login"])) {
     <button name="login">Login</button>
 </form>
 
-<a href="register.php">Register</a>
+<a href="register.html">Register</a>
 
 <p style='color:red;'><?= $msg ?></p>
 </body>

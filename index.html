@@ -3,280 +3,173 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chat + TikTok Viewer</title>
-
+<title>چت آنلاین با لاگین</title>
 <style>
-body {
-    margin: 0;
-    font-family: Arial;
-    background: #111;
-    color: #fff;
-}
-
-/* ---------- Login/Register ---------- */
-#authBox {
-    width: 90%;
-    max-width: 350px;
-    margin: 80px auto;
-    background: #222;
-    padding: 20px;
-    border-radius: 8px;
-}
-
-input {
-    width: 100%;
-    padding: 10px;
-    margin: 8px 0;
-    background: #333;
-    border: none;
-    border-radius: 6px;
-    color: #fff;
-}
-
-button {
-    width: 100%;
-    padding: 10px;
-    background: #ff0050;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    margin-top: 10px;
-    cursor: pointer;
-}
-
-nav {
-    display: flex;
-    background: #000;
-}
-
-nav button {
-    flex: 1;
-    border-radius: 0;
-}
-
-/* ---------- Main Screens ---------- */
-.page {
-    display: none;
-    height: 100vh;
-    overflow-y: auto;
-}
-
-/* ---------- Chat List ---------- */
-.chat-user {
-    padding: 15px;
-    border-bottom: 1px solid #333;
-    cursor: pointer;
-}
-
-.chat-user:hover {
-    background: #222;
-}
-
-/* ---------- Messages ---------- */
-#chatMessages {
-    padding: 15px;
-}
-
-.msg {
-    padding: 10px;
-    background: #222;
-    margin-bottom: 10px;
-    width: fit-content;
-    max-width: 80%;
-    border-radius: 6px;
-}
-
-.me {
-    background: #ff0050;
-    margin-left: auto;
-    text-align: right;
-}
-
-/* ---------- TikTok Video ---------- */
-video {
-    width: 100%;
-    margin-top: 10px;
-    border-radius: 10px;
-}
+body{font-family:sans-serif;background:#f0f0f0;margin:0;padding:0;display:flex;flex-direction:column;height:100vh;}
+.hidden{display:none;}
+#auth,#chat-container{margin:auto;width:95%;max-width:600px;}
+#auth input,#auth button,#chat-input input,#chat-input button{padding:10px;margin:5px;border-radius:5px;border:1px solid #ccc;}
+#auth button,#chat-input button{border:none;background:#2196F3;color:white;cursor:pointer;}
+#chat-box{height:400px;overflow-y:auto;background:white;padding:10px;border-radius:5px;border:1px solid #ccc;margin-bottom:10px;}
+.message{padding:8px 10px;border-radius:10px;margin:5px 0;max-width:70%;}
+.sent{background:#4CAF50;color:white;margin-left:auto;}
+.received{background:#2196F3;color:white;margin-right:auto;}
+#user-list{display:flex;overflow-x:auto;margin-bottom:10px;}
+#user-list div{padding:8px 12px;background:#ff5722;color:white;border-radius:20px;margin-right:5px;cursor:pointer;white-space:nowrap;}
+#chat-input{display:flex;}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
 
-<!-- AUTH BOX -->
-<div id="authBox">
-    <h3>ثبت نام / ورود</h3>
-    <input id="username" placeholder="نام کاربری">
-    <input id="password" placeholder="رمز عبور" type="password">
-    <button onclick="register()">ثبت نام</button>
-    <button onclick="login()">ورود</button>
-    <p id="authMsg" style="color:#f55;margin-top:10px;"></p>
+<!-- Auth -->
+<div id="auth">
+  <h2>ثبت نام / ورود</h2>
+  <input type="text" id="username" placeholder="نام کاربری">
+  <button id="registerBtn">ثبت نام</button>
+  <button id="loginBtn">ورود</button>
+  <p id="auth-msg"></p>
 </div>
 
-<!-- NAV -->
-<nav id="menu" style="display:none;">
-    <button onclick="openPage('videosPage')">ویدئوها</button>
-    <button onclick="openPage('chatPage')">چت</button>
-</nav>
-
-<!-- PAGE: VIDEOS -->
-<div class="page" id="videosPage">
-    <h2 style="text-align:center;">ویدئوهای تیک تاک</h2>
-    <div id="videoList"></div>
-</div>
-
-<!-- PAGE: CHAT USERS -->
-<div class="page" id="chatPage">
-    <h2 style="text-align:center;">کاربران</h2>
-    <input id="searchUser" placeholder="جستجوی کاربر..." oninput="searchUsers()">
-    <div id="usersList"></div>
-</div>
-
-<!-- PAGE: CHAT ROOM -->
-<div class="page" id="roomPage">
-    <h2 id="roomTitle" style="text-align:center;"></h2>
-    <div id="chatMessages"></div>
-
-    <div style="padding:10px; position:fixed; bottom:0; width:100%; background:#000;">
-        <input id="msgBox" placeholder="پیام...">
-        <button onclick="sendMessage()">ارسال</button>
-    </div>
+<!-- Chat -->
+<div id="chat-container" class="hidden">
+  <h3>کاربران آنلاین</h3>
+  <div id="user-list"></div>
+  <div id="chat-box"></div>
+  <div id="chat-input">
+    <input type="text" id="msgInput" placeholder="پیام خود را بنویسید">
+    <button id="sendBtn">ارسال</button>
+    <button id="sendAudioBtn">🎤 ضبط صدا</button>
+  </div>
+  <p id="peer-id-display"></p>
 </div>
 
 <script>
-// --------------------- DATABASE SIMULATION ---------------------
-if (!localStorage.users) localStorage.users = JSON.stringify({});
-if (!localStorage.messages) localStorage.messages = JSON.stringify({});
+// LocalStorage Helpers
+const USERS_KEY="webrtc_chat_users";
+let currentUser=null;
+let peer=null;
+let connections={}; // peerId -> connection
 
-let currentUser = null;
+function loadUsers(){ return JSON.parse(localStorage.getItem(USERS_KEY)||"{}"); }
+function saveUsers(users){ localStorage.setItem(USERS_KEY,JSON.stringify(users)); }
 
-// --------------------- AUTH ---------------------
-function register() {
-    let user = username.value.trim();
-    let pass = password.value.trim();
-    if (!user || !pass) return authMsg.innerText = "فیلدها پر نیست";
+// Auth
+const authDiv=document.getElementById("auth");
+const chatDiv=document.getElementById("chat-container");
+const authMsg=document.getElementById("auth-msg");
+const userListDiv=document.getElementById("user-list");
+const chatBox=document.getElementById("chat-box");
 
-    let db = JSON.parse(localStorage.users);
+document.getElementById("registerBtn").onclick=()=>{
+  const username=document.getElementById("username").value.trim();
+  if(!username){ authMsg.textContent="نام کاربری وارد نشده"; return; }
+  let users=loadUsers();
+  if(users[username]){ authMsg.textContent="این نام کاربری قبلا ثبت شده"; return; }
+  users[username]={peerId:""}; saveUsers(users);
+  authMsg.style.color="green"; authMsg.textContent="ثبت نام موفق! حالا ورود کنید";
+};
 
-    if (db[user]) {
-        authMsg.innerText = "این نام کاربری قبلاً گرفته شده";
-        return;
-    }
+document.getElementById("loginBtn").onclick=()=>{
+  const username=document.getElementById("username").value.trim();
+  if(!username){ authMsg.textContent="نام کاربری وارد نشده"; return; }
+  let users=loadUsers();
+  if(!users[username]){ authMsg.textContent="این نام کاربری ثبت نشده"; return; }
+  currentUser=username;
+  authDiv.classList.add("hidden");
+  chatDiv.classList.remove("hidden");
+  startPeer();
+};
 
-    db[user] = { password: pass };
-    localStorage.users = JSON.stringify(db);
+// WebRTC / PeerJS
+function startPeer(){
+  peer=new Peer(currentUser+Math.floor(Math.random()*1000),{host:'0.peerjs.com',secure:true,port:443});
+  peer.on('open',id=>{
+    document.getElementById("peer-id-display").textContent="Peer ID: "+id;
+    // ذخیره peerId در users
+    let users=loadUsers(); users[currentUser].peerId=id; saveUsers(users);
+    loadUserList();
+  });
 
-    authMsg.style.color = "lime";
-    authMsg.innerText = "ثبت نام انجام شد، اکنون وارد شوید";
+  peer.on('connection',c=>{
+    connections[c.peer]=c;
+    setupConnection(c);
+  });
 }
 
-function login() {
-    let user = username.value.trim();
-    let pass = password.value.trim();
-    let db = JSON.parse(localStorage.users);
-
-    if (!db[user]) return authMsg.innerText = "نام کاربری وجود ندارد";
-    if (db[user].password !== pass) return authMsg.innerText = "رمز اشتباه است";
-
-    currentUser = user;
-    authBox.style.display = "none";
-    menu.style.display = "flex";
-    openPage("videosPage");
+// بارگذاری لیست کاربران آنلاین
+function loadUserList(){
+  userListDiv.innerHTML="";
+  let users=loadUsers();
+  for(let u in users){
+    if(u===currentUser) continue;
+    const div=document.createElement("div");
+    div.textContent=u;
+    div.onclick=()=>{ connectToUser(u); };
+    userListDiv.appendChild(div);
+  }
 }
 
-// --------------------- PAGE SWITCH ---------------------
-function openPage(id) {
-    document.querySelectorAll('.page').forEach(p => p.style.display = "none");
-    document.getElementById(id).style.display = "block";
-
-    if (id === "chatPage") loadUsers();
-    if (id === "videosPage") loadVideos();
+// اتصال به یک کاربر دیگر
+function connectToUser(username){
+  let users=loadUsers();
+  let peerId=users[username]?.peerId;
+  if(!peerId){ alert("کاربر آفلاین است"); return; }
+  if(connections[peerId] && connections[peerId].open) return; // قبلا متصل
+  let c=peer.connect(peerId);
+  connections[peerId]=c;
+  setupConnection(c);
 }
 
-// --------------------- TIKTOK VIDEOS ---------------------
-let tiktokVideos = [
-    // اینجا لینک ویدئوهای تیک تاک را بگذار
-    "video1.mp4",
-    "video2.mp4",
-    "video3.mp4"
-];
-
-function loadVideos() {
-    let box = document.getElementById("videoList");
-    box.innerHTML = "";
-    tiktokVideos.forEach(link => {
-        box.innerHTML += `<video src="${link}" controls></video>`;
-    });
+// تنظیم اتصال
+function setupConnection(c){
+  c.on('open',()=>{ console.log("Connected to "+c.peer); });
+  c.on('data',data=>{
+    if(data.type==="text") addMessage(data.text,'received');
+    if(data.type==="audio") addMessage(data.url,'received',true);
+  });
 }
 
-// --------------------- USERS LIST ---------------------
-function loadUsers() {
-    let db = JSON.parse(localStorage.users);
-    let box = document.getElementById("usersList");
-    box.innerHTML = "";
+// ارسال پیام
+document.getElementById("sendBtn").onclick=()=>{
+  const text=document.getElementById("msgInput").value.trim();
+  if(!text) return;
+  for(let p in connections){ if(connections[p].open) connections[p].send({type:"text",text}); }
+  addMessage(text,'sent');
+  document.getElementById("msgInput").value="";
+};
 
-    Object.keys(db).forEach(u => {
-        if (u !== currentUser)
-            box.innerHTML += `<div class='chat-user' onclick="openChat('${u}')">${u}</div>`;
-    });
-}
+// ضبط و ارسال صدا
+document.getElementById("sendAudioBtn").onclick=async()=>{
+  if(!navigator.mediaDevices || !window.MediaRecorder){ alert("مرورگر شما از ضبط صدا پشتیبانی نمی‌کند"); return;}
+  const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+  const mediaRecorder=new MediaRecorder(stream);
+  let chunks=[];
+  mediaRecorder.ondataavailable=e=>chunks.push(e.data);
+  mediaRecorder.onstop=e=>{
+    const blob=new Blob(chunks,{type:'audio/webm'});
+    const url=URL.createObjectURL(blob);
+    for(let p in connections){ if(connections[p].open) connections[p].send({type:"audio",url}); }
+    addMessage(url,'sent',true);
+    chunks=[];
+  };
+  mediaRecorder.start();
+  alert("ضبط آغاز شد، پس از پایان OK را بزنید.");
+  setTimeout(()=>{ mediaRecorder.stop(); stream.getTracks().forEach(t=>t.stop()); },5000);
+};
 
-function searchUsers() {
-    let txt = searchUser.value.toLowerCase();
-    let db = JSON.parse(localStorage.users);
-    let box = document.getElementById("usersList");
-    box.innerHTML = "";
-
-    Object.keys(db).forEach(u => {
-        if (u !== currentUser && u.toLowerCase().includes(txt))
-            box.innerHTML += `<div class='chat-user' onclick="openChat('${u}')">${u}</div>`;
-    });
-}
-
-// --------------------- CHAT ---------------------
-let currentChat = null;
-
-function openChat(user) {
-    currentChat = user;
-    roomTitle.innerText = "چت با " + user;
-
-    openPage("roomPage");
-    loadMessages();
-}
-
-function loadMessages() {
-    let db = JSON.parse(localStorage.messages);
-    let key = chatKey(currentUser, currentChat);
-
-    let msgs = db[key] || [];
-    let box = chatMessages;
-    box.innerHTML = "";
-
-    msgs.forEach(m => {
-        box.innerHTML += `<div class="msg ${m.from===currentUser?"me":""}">${m.text}</div>`;
-    });
-
-    box.scrollTop = box.scrollHeight;
-}
-
-function sendMessage() {
-    let text = msgBox.value.trim();
-    if (!text) return;
-
-    let db = JSON.parse(localStorage.messages);
-    let key = chatKey(currentUser, currentChat);
-    if (!db[key]) db[key] = [];
-
-    db[key].push({ from: currentUser, text });
-
-    localStorage.messages = JSON.stringify(db);
-    msgBox.value = "";
-    loadMessages();
-}
-
-function chatKey(a, b) {
-    return [a, b].sort().join("_");
+// اضافه کردن پیام به چت باکس
+function addMessage(text,type,isAudio=false){
+  const div=document.createElement("div");
+  div.className='message '+type;
+  if(isAudio){
+    div.innerHTML=`<audio controls src="${text}" style="width:100%;margin-top:5px;"></audio>`;
+  } else {
+    div.textContent=text;
+  }
+  chatBox.appendChild(div);
+  chatBox.scrollTop=chatBox.scrollHeight;
 }
 </script>
-
 </body>
-</html> 
+</html>

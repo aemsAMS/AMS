@@ -3,70 +3,49 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TikChat WEBRTC</title>
+<title>Simple TikTok + WebRTC Chat</title>
 
 <style>
 body {
   margin:0;
+  padding:0;
+  font-family: Arial;
   background:#000;
-  font-family: Arial, sans-serif;
   color:#fff;
   overflow:hidden;
 }
 
-#app {
+/* ===== Layout ===== */
+#container {
   display:flex;
   height:100vh;
-  width:100vw;
-  position:relative;
 }
 
-/* ---------------- VIDEO FEED ---------------- */
-#videoFeed {
-  flex:1;
-  position:relative;
-  overflow:hidden;
+/* TikTok video feed */
+#videos {
+  width:70%;
   background:#000;
+  overflow-y:scroll;
+  scroll-snap-type:y mandatory;
 }
 
-#mainVideo {
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  background:#111;
-}
-
-#videoList {
-  position:absolute;
-  bottom:0;
-  left:0;
-  width:100%;
-  display:flex;
-  overflow-x:auto;
-  background:rgba(0,0,0,0.3);
-  padding:8px;
-}
-
-.vItem {
-  min-width:120px;
-  height:80px;
-  margin-right:8px;
-  background:#222;
-  border-radius:6px;
-  overflow:hidden;
+.video {
+  height:100vh;
+  scroll-snap-align:start;
   display:flex;
   align-items:center;
   justify-content:center;
 }
-.vItem video {
+
+video {
   width:100%;
   height:100%;
   object-fit:cover;
 }
 
-/* ---------------- CHAT ---------------- */
+/* Chat area */
 #chat {
-  width:340px;
+  width:30%;
   background:#111;
   display:flex;
   flex-direction:column;
@@ -79,316 +58,154 @@ body {
   padding:10px;
 }
 
-.msg {
-  background:#222;
-  margin:6px 0;
+#messages div {
+  margin-bottom:10px;
   padding:8px;
-  border-radius:8px;
-  word-wrap:break-word;
+  border-radius:6px;
+  background:#222;
 }
 
-/* message: images/video */
-.chatMedia {
-  max-width:100%;
-  border-radius:8px;
-  margin-top:6px;
-}
-
-#controls {
-  padding:10px;
-  border-top:2px solid #222;
+#inputBox {
   display:flex;
-  gap:6px;
+  padding:10px;
+  background:#000;
 }
 
-input, button {
+#text {
+  flex:1;
   padding:8px;
   border:none;
   border-radius:6px;
 }
 
-button {
-  background:#ff2d55;
+#send {
+  width:70px;
+  margin-left:10px;
+  background:#444;
   color:#fff;
-  cursor:pointer;
+  border:none;
+  border-radius:6px;
 }
 
-/* mobile */
-@media(max-width:900px){
-  #chat{width:40%;}
+/* TikTok Add Form */
+#addForm {
+  padding:10px;
+  background:#000;
+  border-bottom:1px solid #222;
 }
-@media(max-width:700px){
-  #chat{width:100px;}
+
+#videoURL {
+  width:80%;
+  padding:6px;
+  border-radius:6px;
+  border:none;
 }
 </style>
 </head>
+
 <body>
 
-<div id="app">
+<div id="container">
 
-  <!-- VIDEO SECTION -->
-  <div id="videoFeed">
-      <video id="mainVideo" controls autoplay muted></video>
-      <div id="videoList"></div>
+  <!-- TikTok Section -->
+  <div id="videos">
+      <div id="addForm">
+        <input type="text" id="videoURL" placeholder="Paste TikTok direct MP4 link">
+        <button onclick="addVideo()">Add</button>
+      </div>
   </div>
 
-  <!-- CHAT SECTION -->
+  <!-- Chat Section -->
   <div id="chat">
+    <div id="messages"></div>
 
-      <div style="padding:10px; border-bottom:2px solid #222;">
-         <button onclick="showOffer()">Create OFFER</button>
-         <button onclick="acceptOffer()">Accept OFFER</button>
-         <button onclick="acceptAnswer()">Accept ANSWER</button>
-      </div>
-
-      <div id="messages"></div>
-
-      <div id="controls">
-          <input id="textMsg" placeholder="Message...">
-          <button onclick="sendText()">Send</button>
-      </div>
-
-      <div style="padding:10px; border-top:2px solid #222;">
-          <button onclick="pickMedia()">Send Photo/Video</button>
-          <button onclick="recordAudio()">Record Audio</button>
-      </div>
-
+    <div id="inputBox">
+      <input id="text" placeholder="Type message...">
+      <button id="send">Send</button>
+    </div>
   </div>
 
 </div>
 
-<!-- WebRTC hidden video streams -->
-<video id="localVideo" autoplay muted style="display:none"></video>
-<video id="remoteVideo" autoplay style="display:none"></video>
 
 <script>
-// ====================== VIDEO FEED ==========================
-let videos = [];
+/* ============================================================
+   ================== VIDEO SYSTEM =============================
+   ============================================================ */
+function addVideo() {
+  let url = document.getElementById("videoURL").value.trim();
+  if(!url) return;
 
-function loadVideos(){
-    const saved = localStorage.getItem("videoLinks");
-    videos = saved ? JSON.parse(saved) : [];
-    renderVideos();
-}
+  let div = document.createElement("div");
+  div.className = "video";
 
-function renderVideos(){
-    let box = document.getElementById("videoList");
-    box.innerHTML = "";
+  let v = document.createElement("video");
+  v.src = url;
+  v.controls = true;
+  v.autoplay = false;
+  v.preload = "none";
 
-    videos.forEach(link=>{
-        let d = document.createElement("div");
-        d.className="vItem";
+  div.appendChild(v);
+  document.getElementById("videos").appendChild(div);
 
-        let v = document.createElement("video");
-        v.src = link;
-        v.onclick = ()=> document.getElementById("mainVideo").src = link;
-
-        d.appendChild(v);
-        box.appendChild(d);
-    });
-
-    if(videos.length) document.getElementById("mainVideo").src = videos[0];
-}
-
-// Add link (admin-style prompt)
-function addVideoLink(){
-    let l = prompt("Paste video URL:");
-    if(!l) return;
-    videos.push(l);
-    localStorage.setItem("videoLinks", JSON.stringify(videos));
-    renderVideos();
-}
-function clearVideoLinks(){
-    if(!confirm("Delete ALL links?")) return;
-    localStorage.removeItem("videoLinks");
-    videos=[];
-    renderVideos();
-}
-loadVideos();
-
-
-// ====================== WEBRTC SYSTEM ===========================
-let peer = new RTCPeerConnection();
-let dataChannel;
-
-let messagesDiv = document.getElementById("messages");
-
-// Create OFFER
-async function showOffer(){
-    dataChannel = peer.createDataChannel("chat");
-    dataChannel.onmessage = (e)=> handleIncoming(e.data);
-
-    peer.onicecandidate = e => {
-        if(e.candidate) console.log("ICE:", e.candidate);
-    };
-
-    let offer = await peer.createOffer();
-    await peer.setLocalDescription(offer);
-
-    prompt("Send this OFFER to your friend:", JSON.stringify(offer));
-}
-
-// Accept OFFER
-async function acceptOffer(){
-    let off = prompt("Paste OFFER:");
-    if(!off) return;
-    off = JSON.parse(off);
-
-    peer.ondatachannel = e => {
-        dataChannel = e.channel;
-        dataChannel.onmessage = (msg)=>handleIncoming(msg.data);
-    };
-
-    await peer.setRemoteDescription(off);
-    let ans = await peer.createAnswer();
-    await peer.setLocalDescription(ans);
-
-    prompt("Send this ANSWER back:", JSON.stringify(ans));
-}
-
-// Accept ANSWER
-async function acceptAnswer(){
-    let ans = prompt("Paste ANSWER:");
-    if(!ans) return;
-    ans = JSON.parse(ans);
-    await peer.setRemoteDescription(ans);
+  document.getElementById("videoURL").value = "";
 }
 
 
-// ====================== MESSAGE SYSTEM ===========================
-function handleIncoming(data){
-    let msgBox = document.createElement("div");
-    msgBox.className="msg";
+/* ============================================================
+   ================== WEBRTC P2P CHAT ==========================
+   ============================================================ */
 
-    // detect type
-    if(data.startsWith("FILE:")){
-        let json = JSON.parse(data.replace("FILE:",""));
-        displayReceivedFile(json);
-        return;
-    }
+let pc = new RTCPeerConnection({
+  iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+});
 
-    msgBox.textContent = "Them: " + data;
-    messagesDiv.appendChild(msgBox);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+let dataChannel = pc.createDataChannel("chat");
+let messages = document.getElementById("messages");
+
+// Show received messages
+dataChannel.onmessage = e => {
+  let div = document.createElement("div");
+  div.innerText = "Stranger: " + e.data;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+};
+
+// Send message
+document.getElementById("send").onclick = () => {
+  let text = document.getElementById("text").value;
+  if (text.trim() === "") return;
+
+  dataChannel.send(text);
+
+  let div = document.createElement("div");
+  div.innerText = "You: " + text;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+
+  document.getElementById("text").value = "";
+};
+
+// Auto-connect using WebRTC Offer/Answer via URL hash
+async function start() {
+  if (!location.hash) {
+    let offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    location.hash = btoa(JSON.stringify(offer));
+  } else {
+    let offer = JSON.parse(atob(location.hash.substring(1)));
+    await pc.setRemoteDescription(offer);
+
+    let answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+
+    // Copy this answer manually to the other user
+    prompt("Send this answer to your partner:", btoa(JSON.stringify(answer)));
+  }
 }
 
-function addMsg(t){
-    let d = document.createElement("div");
-    d.className="msg";
-    d.textContent = t;
-    messagesDiv.appendChild(d);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-
-function sendText(){
-    let t = document.getElementById("textMsg").value;
-    if(!t) return;
-
-    addMsg("You: "+t);
-    dataChannel.send(t);
-
-    document.getElementById("textMsg").value="";
-}
-
-
-// ========== SEND PHOTO / VIDEO ======================
-function pickMedia(){
-    let input = document.createElement("input");
-    input.type="file";
-    input.accept="image/*,video/*";
-    input.onchange = ()=>{
-        let file = input.files[0];
-        let reader = new FileReader();
-        reader.onload = ()=>{
-            let packet = {
-                type:"media",
-                name:file.name,
-                content:reader.result
-            };
-            dataChannel.send("FILE:"+JSON.stringify(packet));
-            showLocalMedia(packet);
-        };
-        reader.readAsDataURL(file);
-    };
-    input.click();
-}
-
-function showLocalMedia(obj){
-    let m = document.createElement("div");
-    m.className="msg";
-    m.textContent="You sent media:";
-    let media;
-
-    if(obj.content.startsWith("data:video")){
-        media = document.createElement("video");
-        media.controls = true;
-    } else {
-        media = document.createElement("img");
-    }
-    media.src = obj.content;
-    media.className="chatMedia";
-
-    m.appendChild(media);
-    messagesDiv.appendChild(m);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-
-function displayReceivedFile(obj){
-    let m = document.createElement("div");
-    m.className="msg";
-    m.textContent="Them sent media:";
-
-    let media;
-    if(obj.content.startsWith("data:video")){
-        media = document.createElement("video");
-        media.controls = true;
-    } else {
-        media = document.createElement("img");
-    }
-    media.src = obj.content;
-    media.className="chatMedia";
-
-    m.appendChild(media);
-    messagesDiv.appendChild(m);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-
-
-// ========== AUDIO RECORDING ======================
-let mediaRecorder;
-let audioChunks = [];
-
-async function recordAudio(){
-    let stream = await navigator.mediaDevices.getUserMedia({audio:true});
-    mediaRecorder = new MediaRecorder(stream);
-
-    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-
-    mediaRecorder.onstop = ()=>{
-        let blob = new Blob(audioChunks, {type:"audio/webm"});
-        audioChunks=[];
-
-        let reader = new FileReader();
-        reader.onload = ()=>{
-            let pkt = {
-                type:"audio",
-                name:"voice.webm",
-                content:reader.result
-            };
-            dataChannel.send("FILE:"+JSON.stringify(pkt));
-            showLocalMedia(pkt);
-        };
-        reader.readAsDataURL(blob);
-    };
-
-    audioChunks=[];
-    mediaRecorder.start();
-
-    addMsg("🎙 Recording… press OK to stop");
-    setTimeout(()=>mediaRecorder.stop(), 3000);
-}
-
+start();
 </script>
 
 </body>
-  </html> 
+</html>

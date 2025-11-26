@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chat Online + TikTok Viewer</title>
+<title>چت آنلاین + TikTok</title>
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -32,7 +32,7 @@ button:hover{background:#ff1b45;}
 <body>
 
 <div id="auth">
-  <h2>Chat Online + TikTok</h2>
+  <h2>چت آنلاین + TikTok</h2>
   <input type="text" id="username" placeholder="نام کاربری">
   <input type="password" id="password" placeholder="رمز عبور">
   <div>
@@ -64,8 +64,7 @@ button:hover{background:#ff1b45;}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-import { getDatabase, ref, set, push, onChildAdded, onValue } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+import { getDatabase, ref, set, get, onChildAdded, onValue, push, update } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
 
 // Firebase Config
 const firebaseConfig = {
@@ -73,14 +72,13 @@ const firebaseConfig = {
   authDomain: "ams1-949e7.firebaseapp.com",
   databaseURL: "https://ams1-949e7-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "ams1-949e7",
-  storageBucket: "ams1-949e7.firebasestorage.app",
+  storageBucket: "ams1-949e7.appspot.com",
   messagingSenderId: "1061973812134",
   appId: "1:1061973814:web:94e44e9931b5ae9f3d2567",
   measurementId: "G-HDJ81BTE70"
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth();
 const db = getDatabase();
 
 const usernameInput = document.getElementById("username");
@@ -103,64 +101,60 @@ let currentUser = null;
 let currentChatUser = null;
 
 // ثبت نام
-document.getElementById("registerBtn").onclick = ()=>{
+document.getElementById("registerBtn").onclick = async ()=>{
   const username = usernameInput.value.trim();
   const password = passwordInput.value.trim();
   if(!username || !password){ authMsg.textContent="همه فیلدها را پر کنید"; return;}
-  const email = username+"@chatapp.fake";
-  createUserWithEmailAndPassword(auth,email,password)
-  .then(userCredential=>{
-    set(ref(db,"users/"+userCredential.user.uid),{username:username,online:true});
-    authMsg.style.color="green"; authMsg.textContent="ثبت نام موفق! وارد شوید";
-  })
-  .catch(error=>{ authMsg.style.color="red"; authMsg.textContent=error.message; });
+  const usersSnap = await get(ref(db,"users"));
+  const users = usersSnap.val() || {};
+  for(let uid in users){ if(users[uid].username===username){ authMsg.textContent="نام کاربری موجود است"; return;} }
+  const newUserRef = push(ref(db,"users"));
+  await set(newUserRef,{username,password,online:true});
+  authMsg.style.color="green"; authMsg.textContent="ثبت نام موفق! حالا وارد شوید";
 };
 
 // ورود
-document.getElementById("loginBtn").onclick = ()=>{
+document.getElementById("loginBtn").onclick = async ()=>{
   const username = usernameInput.value.trim();
   const password = passwordInput.value.trim();
   if(!username || !password){ authMsg.textContent="همه فیلدها را پر کنید"; return;}
-  const email = username+"@chatapp.fake";
-  signInWithEmailAndPassword(auth,email,password)
-  .catch(error=>{ authMsg.style.color="red"; authMsg.textContent=error.message; });
-};
-
-// وضعیت ورود کاربر
-onAuthStateChanged(auth,user=>{
-  if(user){
-    currentUser=user.uid;
-    set(ref(db,"users/"+currentUser+"/online"),true);
-    authDiv.classList.add("hidden");
-    mainDiv.classList.remove("hidden");
-    loadUsers();
-    loadVideos();
-  } else {
-    authDiv.classList.remove("hidden");
-    mainDiv.classList.add("hidden");
+  const usersSnap = await get(ref(db,"users"));
+  const users = usersSnap.val() || {};
+  for(let uid in users){
+    if(users[uid].username===username && users[uid].password===password){
+      currentUser = uid;
+      await update(ref(db,"users/"+currentUser),{online:true});
+      authDiv.classList.add("hidden");
+      mainDiv.classList.remove("hidden");
+      loadUsers();
+      loadVideos();
+      return;
+    }
   }
-});
+  authMsg.textContent="نام کاربری یا رمز اشتباه است";
+};
 
 // لود کاربران آنلاین
 function loadUsers(){
   onValue(ref(db,"users"),snapshot=>{
     userListDiv.innerHTML="";
-    snapshot.forEach(s=>{
-      const u = s.val();
-      if(s.key===currentUser) return;
+    const users = snapshot.val() || {};
+    for(let uid in users){
+      if(uid===currentUser) continue;
+      const u = users[uid];
       const div = document.createElement("div");
       div.textContent = u.username;
       div.onclick = ()=>{
-        currentChatUser = s.key;
+        currentChatUser = uid;
         chatBox.innerHTML="";
         listenChat(currentUser,currentChatUser);
       };
       userListDiv.appendChild(div);
-    });
+    }
   });
 }
 
-// لود چت آنلاین
+// لود چت آنلاین و ذخیره
 function listenChat(me,other){
   const chatId = [me,other].sort().join("_");
   const chatRef = ref(db,"chats/"+chatId);
@@ -172,7 +166,7 @@ function listenChat(me,other){
     if(msg.type==="image"){ div.innerHTML=`<img src="${msg.text}" style="max-width:100%;border-radius:10px;">`; }
     if(msg.type==="audio"){ div.innerHTML=`<audio controls src="${msg.text}" style="width:100%;"></audio>`; }
     chatBox.appendChild(div);
-    chatBox.scrollTop=chatBox.scrollHeight;
+    chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
 
@@ -219,13 +213,13 @@ sendAudioBtn.onclick = ()=>{
   });
 };
 
-// ارسال پیام
+// ارسال پیام ذخیره شده در Firebase
 function sendMessage(me,other,text,type){
   const chatId = [me,other].sort().join("_");
   push(ref(db,"chats/"+chatId),{sender:me,text,type});
 }
 
-// نمایش ویدئوهای TikTok
+// ویدئوهای TikTok
 function loadVideos(){
   const videos = [
     "https://www.tiktok.com/embed/7255031982033485099",
@@ -252,4 +246,4 @@ tabChat.onclick=()=>{
 </script>
 
 </body>
-</html> 
+  </html> 

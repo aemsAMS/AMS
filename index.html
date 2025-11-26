@@ -1,347 +1,282 @@
 <!DOCTYPE html>
-<html>
+<html lang="fa">
 <head>
 <meta charset="UTF-8">
-<title>Mini Social Chat – Secure</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat + TikTok Viewer</title>
 
 <style>
-body { margin:0; background:#111; color:#fff; font-family:Arial; }
-
-#loginBox, #registerBox, #chatUI, #userListBox {
-  display:none;
-  padding:20px;
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #111;
+    color: #fff;
 }
 
-input, button {
-  padding:10px;
-  margin:5px 0;
-  width:100%;
-  border:none;
-  border-radius:6px;
+/* ---------- Login/Register ---------- */
+#authBox {
+    width: 90%;
+    max-width: 350px;
+    margin: 80px auto;
+    background: #222;
+    padding: 20px;
+    border-radius: 8px;
 }
 
-button { background:#444; color:#fff; cursor:pointer; }
-
-/* Layout */
-#main {
-  display:flex;
-  height:100vh;
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    background: #333;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
 }
 
-#userList {
-  width:30%;
-  border-right:2px solid #222;
-  overflow-y:auto;
+button {
+    width: 100%;
+    padding: 10px;
+    background: #ff0050;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    margin-top: 10px;
+    cursor: pointer;
 }
 
-#chatArea {
-  width:70%;
-  display:flex;
-  flex-direction:column;
+nav {
+    display: flex;
+    background: #000;
 }
 
-#messages {
-  flex:1;
-  padding:10px;
-  overflow-y:auto;
+nav button {
+    flex: 1;
+    border-radius: 0;
+}
+
+/* ---------- Main Screens ---------- */
+.page {
+    display: none;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+/* ---------- Chat List ---------- */
+.chat-user {
+    padding: 15px;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+}
+
+.chat-user:hover {
+    background: #222;
+}
+
+/* ---------- Messages ---------- */
+#chatMessages {
+    padding: 15px;
 }
 
 .msg {
-  background:#222;
-  padding:8px;
-  margin-bottom:8px;
-  border-radius:6px;
+    padding: 10px;
+    background: #222;
+    margin-bottom: 10px;
+    width: fit-content;
+    max-width: 80%;
+    border-radius: 6px;
 }
 
-.me { background:#333; }
-
-.user {
-  padding:12px;
-  border-bottom:1px solid #222;
-  cursor:pointer;
+.me {
+    background: #ff0050;
+    margin-left: auto;
+    text-align: right;
 }
 
-.user:hover { background:#222; }
+/* ---------- TikTok Video ---------- */
+video {
+    width: 100%;
+    margin-top: 10px;
+    border-radius: 10px;
+}
 </style>
 </head>
-
 <body>
 
-<!-- REGISTER -->
-<div id="registerBox">
-  <h2>Register</h2>
-  <input id="regName" placeholder="Username">
-  <input id="regPass" type="password" placeholder="Password">
-  <button onclick="register()">Register</button>
-  <p>Already have an account? <a href="#" onclick="showLogin()">Login</a></p>
+<!-- AUTH BOX -->
+<div id="authBox">
+    <h3>ثبت نام / ورود</h3>
+    <input id="username" placeholder="نام کاربری">
+    <input id="password" placeholder="رمز عبور" type="password">
+    <button onclick="register()">ثبت نام</button>
+    <button onclick="login()">ورود</button>
+    <p id="authMsg" style="color:#f55;margin-top:10px;"></p>
 </div>
 
-<!-- LOGIN -->
-<div id="loginBox">
-  <h2>Login</h2>
-  <input id="logName" placeholder="Username">
-  <input id="logPass" type="password" placeholder="Password">
-  <button onclick="login()">Login</button>
-  <p>No account? <a href="#" onclick="showRegister()">Register</a></p>
+<!-- NAV -->
+<nav id="menu" style="display:none;">
+    <button onclick="openPage('videosPage')">ویدئوها</button>
+    <button onclick="openPage('chatPage')">چت</button>
+</nav>
+
+<!-- PAGE: VIDEOS -->
+<div class="page" id="videosPage">
+    <h2 style="text-align:center;">ویدئوهای تیک تاک</h2>
+    <div id="videoList"></div>
 </div>
 
-<!-- APP -->
-<div id="main">
+<!-- PAGE: CHAT USERS -->
+<div class="page" id="chatPage">
+    <h2 style="text-align:center;">کاربران</h2>
+    <input id="searchUser" placeholder="جستجوی کاربر..." oninput="searchUsers()">
+    <div id="usersList"></div>
+</div>
 
-  <div id="userListBox">
-    <h3>Online Users</h3>
-    <div id="userList"></div>
-  </div>
+<!-- PAGE: CHAT ROOM -->
+<div class="page" id="roomPage">
+    <h2 id="roomTitle" style="text-align:center;"></h2>
+    <div id="chatMessages"></div>
 
-  <div id="chatUI">
-    <h3 id="chatWith"></h3>
-    <div id="chatArea">
-      <div id="messages"></div>
-      <input id="msg" placeholder="Message...">
-      <button onclick="sendMsg()">Send</button>
+    <div style="padding:10px; position:fixed; bottom:0; width:100%; background:#000;">
+        <input id="msgBox" placeholder="پیام...">
+        <button onclick="sendMessage()">ارسال</button>
     </div>
-  </div>
-
 </div>
 
 <script>
-/* ============================================================
-      REGISTER / LOGIN with PASSWORD
-   ============================================================ */
+// --------------------- DATABASE SIMULATION ---------------------
+if (!localStorage.users) localStorage.users = JSON.stringify({});
+if (!localStorage.messages) localStorage.messages = JSON.stringify({});
 
-if (!localStorage.getItem("users")) localStorage.setItem("users", "{}");
+let currentUser = null;
 
-function showLogin() {
-  registerBox.style.display="none";
-  loginBox.style.display="block";
-}
-
-function showRegister() {
-  loginBox.style.display="none";
-  registerBox.style.display="block";
-}
-
+// --------------------- AUTH ---------------------
 function register() {
-  let name = regName.value.trim();
-  let pass = regPass.value.trim();
+    let user = username.value.trim();
+    let pass = password.value.trim();
+    if (!user || !pass) return authMsg.innerText = "فیلدها پر نیست";
 
-  if (!name || !pass) return alert("Fill all fields");
+    let db = JSON.parse(localStorage.users);
 
-  let users = JSON.parse(localStorage.getItem("users"));
+    if (db[user]) {
+        authMsg.innerText = "این نام کاربری قبلاً گرفته شده";
+        return;
+    }
 
-  if (users[name]) return alert("Username exists!");
+    db[user] = { password: pass };
+    localStorage.users = JSON.stringify(db);
 
-  users[name] = pass;
-  localStorage.setItem("users", JSON.stringify(users));
-
-  localStorage.setItem("me", name);
-  location.reload();
+    authMsg.style.color = "lime";
+    authMsg.innerText = "ثبت نام انجام شد، اکنون وارد شوید";
 }
 
 function login() {
-  let name = logName.value.trim();
-  let pass = logPass.value.trim();
+    let user = username.value.trim();
+    let pass = password.value.trim();
+    let db = JSON.parse(localStorage.users);
 
-  let users = JSON.parse(localStorage.getItem("users"));
+    if (!db[user]) return authMsg.innerText = "نام کاربری وجود ندارد";
+    if (db[user].password !== pass) return authMsg.innerText = "رمز اشتباه است";
 
-  if (!users[name]) return alert("User not found");
-  if (users[name] !== pass) return alert("Wrong password");
-
-  localStorage.setItem("me", name);
-  location.reload();
+    currentUser = user;
+    authBox.style.display = "none";
+    menu.style.display = "flex";
+    openPage("videosPage");
 }
 
+// --------------------- PAGE SWITCH ---------------------
+function openPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.style.display = "none");
+    document.getElementById(id).style.display = "block";
 
-/* If user is logged in */
-let me = localStorage.getItem("me");
-if (!me) {
-  showLogin();
-} else {
-  loginBox.style.display="none";
-  registerBox.style.display="none";
-  userListBox.style.display="block";
+    if (id === "chatPage") loadUsers();
+    if (id === "videosPage") loadVideos();
 }
 
+// --------------------- TIKTOK VIDEOS ---------------------
+let tiktokVideos = [
+    // اینجا لینک ویدئوهای تیک تاک را بگذار
+    "video1.mp4",
+    "video2.mp4",
+    "video3.mp4"
+];
 
+function loadVideos() {
+    let box = document.getElementById("videoList");
+    box.innerHTML = "";
+    tiktokVideos.forEach(link => {
+        box.innerHTML += `<video src="${link}" controls></video>`;
+    });
+}
 
-/* ============================================================
-      ONLINE USERS (BroadcastChannel)
-   ============================================================ */
-
-let bc = new BroadcastChannel("online");
-let onlineUsers = {};
-
-bc.onmessage = e => {
-  onlineUsers = e.data;
-  loadUsers();
-};
-
-setInterval(() => {
-  onlineUsers[me] = Date.now();
-  bc.postMessage(onlineUsers);
-  loadUsers();
-}, 2000);
-
+// --------------------- USERS LIST ---------------------
 function loadUsers() {
-  userList.innerHTML = "";
-  let now = Date.now();
+    let db = JSON.parse(localStorage.users);
+    let box = document.getElementById("usersList");
+    box.innerHTML = "";
 
-  Object.keys(onlineUsers).forEach(u => {
-    if (now - onlineUsers[u] < 5000 && u !== me) {
-      let div = document.createElement("div");
-      div.className="user";
-      div.innerText = u;
-      div.onclick = () => startChat(u);
-      userList.appendChild(div);
-    }
-  });
+    Object.keys(db).forEach(u => {
+        if (u !== currentUser)
+            box.innerHTML += `<div class='chat-user' onclick="openChat('${u}')">${u}</div>`;
+    });
 }
 
+function searchUsers() {
+    let txt = searchUser.value.toLowerCase();
+    let db = JSON.parse(localStorage.users);
+    let box = document.getElementById("usersList");
+    box.innerHTML = "";
 
-
-/* ============================================================
-      MESSAGE STORAGE SYSTEM (localStorage)
-   ============================================================ */
-
-if (!localStorage.getItem("messages")) localStorage.setItem("messages", "{}");
-
-function saveMessage(user, text, fromMe) {
-  let all = JSON.parse(localStorage.getItem("messages"));
-  if (!all[me]) all[me] = {};
-  if (!all[me][user]) all[me][user] = [];
-
-  all[me][user].push({
-    from: fromMe ? me : user,
-    text: text,
-    time: Date.now()
-  });
-
-  localStorage.setItem("messages", JSON.stringify(all));
+    Object.keys(db).forEach(u => {
+        if (u !== currentUser && u.toLowerCase().includes(txt))
+            box.innerHTML += `<div class='chat-user' onclick="openChat('${u}')">${u}</div>`;
+    });
 }
 
-function loadOldMessages(user) {
-  messages.innerHTML = "";
-  let all = JSON.parse(localStorage.getItem("messages"));
-  if (!all[me] || !all[me][user]) return;
+// --------------------- CHAT ---------------------
+let currentChat = null;
 
-  all[me][user].forEach(m => {
-    let div = document.createElement("div");
-    div.className = "msg";
-    if (m.from === me) div.className += " me";
-    div.innerText = m.from + ": " + m.text;
-    messages.appendChild(div);
-  });
+function openChat(user) {
+    currentChat = user;
+    roomTitle.innerText = "چت با " + user;
 
-  messages.scrollTop = messages.scrollHeight;
+    openPage("roomPage");
+    loadMessages();
 }
 
+function loadMessages() {
+    let db = JSON.parse(localStorage.messages);
+    let key = chatKey(currentUser, currentChat);
 
+    let msgs = db[key] || [];
+    let box = chatMessages;
+    box.innerHTML = "";
 
-/* ============================================================
-      WEBRTC CHAT SYSTEM
-   ============================================================ */
+    msgs.forEach(m => {
+        box.innerHTML += `<div class="msg ${m.from===currentUser?"me":""}">${m.text}</div>`;
+    });
 
-let pc;
-let channel;
-let chatPartner = null;
-
-async function startChat(user) {
-  chatPartner = user;
-  chatUI.style.display = "block";
-  chatWith.innerText = "Chat with: " + user;
-
-  loadOldMessages(user);
-
-  pc = new RTCPeerConnection({ iceServers:[{urls:"stun:stun.l.google.com:19302"}] });
-  channel = pc.createDataChannel("chat");
-  channel.onmessage = e => receiveMsg(e.data);
-
-  pc.onicecandidate = e => {
-    if (e.candidate) signal(user, { candidate: e.candidate });
-  };
-
-  let offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-
-  signal(user, { offer });
+    box.scrollTop = box.scrollHeight;
 }
 
-/* SIGNALING */
-let signalBC = new BroadcastChannel("signal");
+function sendMessage() {
+    let text = msgBox.value.trim();
+    if (!text) return;
 
-function signal(to, data) {
-  signalBC.postMessage({ from: me, to, data });
+    let db = JSON.parse(localStorage.messages);
+    let key = chatKey(currentUser, currentChat);
+    if (!db[key]) db[key] = [];
+
+    db[key].push({ from: currentUser, text });
+
+    localStorage.messages = JSON.stringify(db);
+    msgBox.value = "";
+    loadMessages();
 }
 
-signalBC.onmessage = async e => {
-  let { from, to, data } = e.data;
-  if (to !== me) return;
-
-  if (!pc) {
-    pc = new RTCPeerConnection({ iceServers:[{urls:"stun:stun.l.google.com:19302"}] });
-    pc.ondatachannel = ev => {
-      channel = ev.channel;
-      channel.onmessage = e => receiveMsg(e.data);
-    };
-    pc.onicecandidate = ev => {
-      if (ev.candidate) signal(from, { candidate: ev.candidate });
-    };
-  }
-
-  if (data.offer) {
-    await pc.setRemoteDescription(data.offer);
-    let answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-    signal(from, { answer });
-  }
-
-  if (data.answer) {
-    await pc.setRemoteDescription(data.answer);
-  }
-
-  if (data.candidate) {
-    try { await pc.addIceCandidate(data.candidate); } catch(e){}
-  }
-
-  chatPartner = from;
-  chatUI.style.display = "block";
-  chatWith.innerText = "Chat with: " + from;
-
-  loadOldMessages(from);
-};
-
-
-
-/* SEND / RECEIVE */
-function sendMsg() {
-  let text = msg.value.trim();
-  if (!text) return;
-
-  channel.send(text);
-  saveMessage(chatPartner, text, true);
-
-  let div = document.createElement("div");
-  div.className="msg me";
-  div.innerText = "Me: " + text;
-  messages.appendChild(div);
-
-  msg.value = "";
-  messages.scrollTop = messages.scrollHeight;
+function chatKey(a, b) {
+    return [a, b].sort().join("_");
 }
-
-function receiveMsg(text) {
-  saveMessage(chatPartner, text, false);
-
-  let div = document.createElement("div");
-  div.className="msg";
-  div.innerText = chatPartner + ": " + text;
-  messages.appendChild(div);
-
-  messages.scrollTop = messages.scrollHeight;
-}
-
 </script>
 
 </body>
-        </html> 
+</html> 

@@ -1,211 +1,347 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
+<title>Mini Social Chat – Secure</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simple TikTok + WebRTC Chat</title>
 
 <style>
-body {
-  margin:0;
-  padding:0;
-  font-family: Arial;
-  background:#000;
-  color:#fff;
-  overflow:hidden;
+body { margin:0; background:#111; color:#fff; font-family:Arial; }
+
+#loginBox, #registerBox, #chatUI, #userListBox {
+  display:none;
+  padding:20px;
 }
 
-/* ===== Layout ===== */
-#container {
-  display:flex;
-  height:100vh;
-}
-
-/* TikTok video feed */
-#videos {
-  width:70%;
-  background:#000;
-  overflow-y:scroll;
-  scroll-snap-type:y mandatory;
-}
-
-.video {
-  height:100vh;
-  scroll-snap-align:start;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-
-video {
+input, button {
+  padding:10px;
+  margin:5px 0;
   width:100%;
-  height:100%;
-  object-fit:cover;
+  border:none;
+  border-radius:6px;
 }
 
-/* Chat area */
-#chat {
+button { background:#444; color:#fff; cursor:pointer; }
+
+/* Layout */
+#main {
+  display:flex;
+  height:100vh;
+}
+
+#userList {
   width:30%;
-  background:#111;
+  border-right:2px solid #222;
+  overflow-y:auto;
+}
+
+#chatArea {
+  width:70%;
   display:flex;
   flex-direction:column;
-  border-left:2px solid #222;
 }
 
 #messages {
   flex:1;
+  padding:10px;
   overflow-y:auto;
-  padding:10px;
 }
 
-#messages div {
-  margin-bottom:10px;
-  padding:8px;
-  border-radius:6px;
+.msg {
   background:#222;
-}
-
-#inputBox {
-  display:flex;
-  padding:10px;
-  background:#000;
-}
-
-#text {
-  flex:1;
   padding:8px;
-  border:none;
+  margin-bottom:8px;
   border-radius:6px;
 }
 
-#send {
-  width:70px;
-  margin-left:10px;
-  background:#444;
-  color:#fff;
-  border:none;
-  border-radius:6px;
-}
+.me { background:#333; }
 
-/* TikTok Add Form */
-#addForm {
-  padding:10px;
-  background:#000;
+.user {
+  padding:12px;
   border-bottom:1px solid #222;
+  cursor:pointer;
 }
 
-#videoURL {
-  width:80%;
-  padding:6px;
-  border-radius:6px;
-  border:none;
-}
+.user:hover { background:#222; }
 </style>
 </head>
 
 <body>
 
-<div id="container">
+<!-- REGISTER -->
+<div id="registerBox">
+  <h2>Register</h2>
+  <input id="regName" placeholder="Username">
+  <input id="regPass" type="password" placeholder="Password">
+  <button onclick="register()">Register</button>
+  <p>Already have an account? <a href="#" onclick="showLogin()">Login</a></p>
+</div>
 
-  <!-- TikTok Section -->
-  <div id="videos">
-      <div id="addForm">
-        <input type="text" id="videoURL" placeholder="Paste TikTok direct MP4 link">
-        <button onclick="addVideo()">Add</button>
-      </div>
+<!-- LOGIN -->
+<div id="loginBox">
+  <h2>Login</h2>
+  <input id="logName" placeholder="Username">
+  <input id="logPass" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+  <p>No account? <a href="#" onclick="showRegister()">Register</a></p>
+</div>
+
+<!-- APP -->
+<div id="main">
+
+  <div id="userListBox">
+    <h3>Online Users</h3>
+    <div id="userList"></div>
   </div>
 
-  <!-- Chat Section -->
-  <div id="chat">
-    <div id="messages"></div>
-
-    <div id="inputBox">
-      <input id="text" placeholder="Type message...">
-      <button id="send">Send</button>
+  <div id="chatUI">
+    <h3 id="chatWith"></h3>
+    <div id="chatArea">
+      <div id="messages"></div>
+      <input id="msg" placeholder="Message...">
+      <button onclick="sendMsg()">Send</button>
     </div>
   </div>
 
 </div>
 
-
 <script>
 /* ============================================================
-   ================== VIDEO SYSTEM =============================
+      REGISTER / LOGIN with PASSWORD
    ============================================================ */
-function addVideo() {
-  let url = document.getElementById("videoURL").value.trim();
-  if(!url) return;
 
-  let div = document.createElement("div");
-  div.className = "video";
+if (!localStorage.getItem("users")) localStorage.setItem("users", "{}");
 
-  let v = document.createElement("video");
-  v.src = url;
-  v.controls = true;
-  v.autoplay = false;
-  v.preload = "none";
-
-  div.appendChild(v);
-  document.getElementById("videos").appendChild(div);
-
-  document.getElementById("videoURL").value = "";
+function showLogin() {
+  registerBox.style.display="none";
+  loginBox.style.display="block";
 }
+
+function showRegister() {
+  loginBox.style.display="none";
+  registerBox.style.display="block";
+}
+
+function register() {
+  let name = regName.value.trim();
+  let pass = regPass.value.trim();
+
+  if (!name || !pass) return alert("Fill all fields");
+
+  let users = JSON.parse(localStorage.getItem("users"));
+
+  if (users[name]) return alert("Username exists!");
+
+  users[name] = pass;
+  localStorage.setItem("users", JSON.stringify(users));
+
+  localStorage.setItem("me", name);
+  location.reload();
+}
+
+function login() {
+  let name = logName.value.trim();
+  let pass = logPass.value.trim();
+
+  let users = JSON.parse(localStorage.getItem("users"));
+
+  if (!users[name]) return alert("User not found");
+  if (users[name] !== pass) return alert("Wrong password");
+
+  localStorage.setItem("me", name);
+  location.reload();
+}
+
+
+/* If user is logged in */
+let me = localStorage.getItem("me");
+if (!me) {
+  showLogin();
+} else {
+  loginBox.style.display="none";
+  registerBox.style.display="none";
+  userListBox.style.display="block";
+}
+
 
 
 /* ============================================================
-   ================== WEBRTC P2P CHAT ==========================
+      ONLINE USERS (BroadcastChannel)
    ============================================================ */
 
-let pc = new RTCPeerConnection({
-  iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
-});
+let bc = new BroadcastChannel("online");
+let onlineUsers = {};
 
-let dataChannel = pc.createDataChannel("chat");
-let messages = document.getElementById("messages");
-
-// Show received messages
-dataChannel.onmessage = e => {
-  let div = document.createElement("div");
-  div.innerText = "Stranger: " + e.data;
-  messages.appendChild(div);
-  messages.scrollTop = messages.scrollHeight;
+bc.onmessage = e => {
+  onlineUsers = e.data;
+  loadUsers();
 };
 
-// Send message
-document.getElementById("send").onclick = () => {
-  let text = document.getElementById("text").value;
-  if (text.trim() === "") return;
+setInterval(() => {
+  onlineUsers[me] = Date.now();
+  bc.postMessage(onlineUsers);
+  loadUsers();
+}, 2000);
 
-  dataChannel.send(text);
+function loadUsers() {
+  userList.innerHTML = "";
+  let now = Date.now();
 
-  let div = document.createElement("div");
-  div.innerText = "You: " + text;
-  messages.appendChild(div);
-  messages.scrollTop = messages.scrollHeight;
-
-  document.getElementById("text").value = "";
-};
-
-// Auto-connect using WebRTC Offer/Answer via URL hash
-async function start() {
-  if (!location.hash) {
-    let offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    location.hash = btoa(JSON.stringify(offer));
-  } else {
-    let offer = JSON.parse(atob(location.hash.substring(1)));
-    await pc.setRemoteDescription(offer);
-
-    let answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-
-    // Copy this answer manually to the other user
-    prompt("Send this answer to your partner:", btoa(JSON.stringify(answer)));
-  }
+  Object.keys(onlineUsers).forEach(u => {
+    if (now - onlineUsers[u] < 5000 && u !== me) {
+      let div = document.createElement("div");
+      div.className="user";
+      div.innerText = u;
+      div.onclick = () => startChat(u);
+      userList.appendChild(div);
+    }
+  });
 }
 
-start();
+
+
+/* ============================================================
+      MESSAGE STORAGE SYSTEM (localStorage)
+   ============================================================ */
+
+if (!localStorage.getItem("messages")) localStorage.setItem("messages", "{}");
+
+function saveMessage(user, text, fromMe) {
+  let all = JSON.parse(localStorage.getItem("messages"));
+  if (!all[me]) all[me] = {};
+  if (!all[me][user]) all[me][user] = [];
+
+  all[me][user].push({
+    from: fromMe ? me : user,
+    text: text,
+    time: Date.now()
+  });
+
+  localStorage.setItem("messages", JSON.stringify(all));
+}
+
+function loadOldMessages(user) {
+  messages.innerHTML = "";
+  let all = JSON.parse(localStorage.getItem("messages"));
+  if (!all[me] || !all[me][user]) return;
+
+  all[me][user].forEach(m => {
+    let div = document.createElement("div");
+    div.className = "msg";
+    if (m.from === me) div.className += " me";
+    div.innerText = m.from + ": " + m.text;
+    messages.appendChild(div);
+  });
+
+  messages.scrollTop = messages.scrollHeight;
+}
+
+
+
+/* ============================================================
+      WEBRTC CHAT SYSTEM
+   ============================================================ */
+
+let pc;
+let channel;
+let chatPartner = null;
+
+async function startChat(user) {
+  chatPartner = user;
+  chatUI.style.display = "block";
+  chatWith.innerText = "Chat with: " + user;
+
+  loadOldMessages(user);
+
+  pc = new RTCPeerConnection({ iceServers:[{urls:"stun:stun.l.google.com:19302"}] });
+  channel = pc.createDataChannel("chat");
+  channel.onmessage = e => receiveMsg(e.data);
+
+  pc.onicecandidate = e => {
+    if (e.candidate) signal(user, { candidate: e.candidate });
+  };
+
+  let offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+
+  signal(user, { offer });
+}
+
+/* SIGNALING */
+let signalBC = new BroadcastChannel("signal");
+
+function signal(to, data) {
+  signalBC.postMessage({ from: me, to, data });
+}
+
+signalBC.onmessage = async e => {
+  let { from, to, data } = e.data;
+  if (to !== me) return;
+
+  if (!pc) {
+    pc = new RTCPeerConnection({ iceServers:[{urls:"stun:stun.l.google.com:19302"}] });
+    pc.ondatachannel = ev => {
+      channel = ev.channel;
+      channel.onmessage = e => receiveMsg(e.data);
+    };
+    pc.onicecandidate = ev => {
+      if (ev.candidate) signal(from, { candidate: ev.candidate });
+    };
+  }
+
+  if (data.offer) {
+    await pc.setRemoteDescription(data.offer);
+    let answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    signal(from, { answer });
+  }
+
+  if (data.answer) {
+    await pc.setRemoteDescription(data.answer);
+  }
+
+  if (data.candidate) {
+    try { await pc.addIceCandidate(data.candidate); } catch(e){}
+  }
+
+  chatPartner = from;
+  chatUI.style.display = "block";
+  chatWith.innerText = "Chat with: " + from;
+
+  loadOldMessages(from);
+};
+
+
+
+/* SEND / RECEIVE */
+function sendMsg() {
+  let text = msg.value.trim();
+  if (!text) return;
+
+  channel.send(text);
+  saveMessage(chatPartner, text, true);
+
+  let div = document.createElement("div");
+  div.className="msg me";
+  div.innerText = "Me: " + text;
+  messages.appendChild(div);
+
+  msg.value = "";
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function receiveMsg(text) {
+  saveMessage(chatPartner, text, false);
+
+  let div = document.createElement("div");
+  div.className="msg";
+  div.innerText = chatPartner + ": " + text;
+  messages.appendChild(div);
+
+  messages.scrollTop = messages.scrollHeight;
+}
+
 </script>
 
 </body>
-</html>
+        </html> 

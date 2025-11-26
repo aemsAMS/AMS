@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>چت آنلاین با Firebase</title>
+<title>چت آنلاین حرفه‌ای با Firebase</title>
 <style>
 body{font-family:sans-serif;background:#f0f0f0;margin:0;padding:0;display:flex;flex-direction:column;height:100vh;}
 .hidden{display:none;}
 #auth,#chat-container{margin:auto;width:95%;max-width:600px;}
-#auth input,#auth button,#chat-input input,#chat-input button{padding:10px;margin:5px;border-radius:5px;border:1px solid #ccc;}
-#auth button,#chat-input button{border:none;background:#2196F3;color:white;cursor:pointer;}
+#auth input,#auth button,#chat-input input,#chat-input button,#videoLinkInput,#addVideoBtn{padding:10px;margin:5px;border-radius:5px;border:1px solid #ccc;}
+#auth button,#chat-input button,#addVideoBtn{border:none;background:#2196F3;color:white;cursor:pointer;}
 #chat-box{height:400px;overflow-y:auto;background:white;padding:10px;border-radius:5px;border:1px solid #ccc;margin-bottom:10px;}
-.message{padding:8px 10px;border-radius:10px;margin:5px 0;max-width:70%;}
+.message{padding:8px 10px;border-radius:10px;margin:5px 0;max-width:70%;word-wrap:break-word;}
 .sent{background:#4CAF50;color:white;margin-left:auto;}
 .received{background:#2196F3;color:white;margin-right:auto;}
 #user-list{display:flex;overflow-x:auto;margin-bottom:10px;}
@@ -58,13 +58,13 @@ body{font-family:sans-serif;background:#f0f0f0;margin:0;padding:0;display:flex;f
 </div>
 
 <script>
-/* ===== Firebase Config آماده ===== */
+/* ===== Firebase Config ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyDn86gjV3Ena3Q4i84rCGNnnGTyDqEE2Xg",
   authDomain: "ams1-949e7.firebaseapp.com",
   databaseURL: "https://ams1-949e7-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "ams1-949e7",
-  storageBucket: "ams1-949e7.firebasestorage.app",
+  storageBucket: "ams1-949e7.appspot.com",
   messagingSenderId: "1061973812134",
   appId: "1:1061973812134:web:94e44e9931b5ae9f3d2567",
   measurementId: "G-HDJ81BTE70"
@@ -73,24 +73,22 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const storage = firebase.storage();
 
-// Local variables
+/* ===== Variables ===== */
 let currentUser = null;
 let currentChatUser = null;
 
-// Auth Elements
+/* ===== Elements ===== */
 const authDiv = document.getElementById("auth");
 const chatDiv = document.getElementById("chat-container");
 const authMsg = document.getElementById("auth-msg");
 const userListDiv = document.getElementById("user-list");
 const chatBox = document.getElementById("chat-box");
 
-// Chat Input
 const msgInput = document.getElementById("msgInput");
 const sendBtn = document.getElementById("sendBtn");
 const sendImgBtn = document.getElementById("sendImgBtn");
 const sendAudioBtn = document.getElementById("sendAudioBtn");
 
-// Video Section
 const videoSection = document.getElementById("video-section");
 const videoLinkInput = document.getElementById("videoLinkInput");
 const addVideoBtn = document.getElementById("addVideoBtn");
@@ -99,9 +97,9 @@ const addVideoBtn = document.getElementById("addVideoBtn");
 document.getElementById("registerBtn").onclick = () => {
   const username = document.getElementById("username").value.trim();
   const password = document.getElementById("password").value.trim();
-  if(!username || !password){ authMsg.textContent="همه فیلدها را پر کنید"; return; }
-  db.ref('users/'+username).get().then(snapshot=>{
-    if(snapshot.exists()){ authMsg.textContent="نام کاربری موجود است"; return; }
+  if(!username||!password){ authMsg.textContent="همه فیلدها را پر کنید"; return;}
+  db.ref('users/'+username).get().then(snap=>{
+    if(snap.exists()){ authMsg.textContent="نام کاربری موجود است"; return;}
     db.ref('users/'+username).set({password:password,online:false});
     authMsg.style.color="green"; authMsg.textContent="ثبت نام موفق، حالا وارد شوید";
   });
@@ -110,11 +108,11 @@ document.getElementById("registerBtn").onclick = () => {
 document.getElementById("loginBtn").onclick = () => {
   const username = document.getElementById("username").value.trim();
   const password = document.getElementById("password").value.trim();
-  if(!username || !password){ authMsg.textContent="همه فیلدها را پر کنید"; return; }
-  db.ref('users/'+username).get().then(snapshot=>{
-    if(!snapshot.exists()){ authMsg.textContent="نام کاربری ثبت نشده"; return; }
-    if(snapshot.val().password !== password){ authMsg.textContent="رمز عبور اشتباه است"; return; }
-    currentUser = username;
+  if(!username||!password){ authMsg.textContent="همه فیلدها را پر کنید"; return;}
+  db.ref('users/'+username).get().then(snap=>{
+    if(!snap.exists()){ authMsg.textContent="نام کاربری ثبت نشده"; return;}
+    if(snap.val().password!==password){ authMsg.textContent="رمز عبور اشتباه است"; return;}
+    currentUser=username;
     authDiv.classList.add("hidden");
     chatDiv.classList.remove("hidden");
     db.ref('users/'+currentUser+'/online').set(true);
@@ -131,10 +129,10 @@ function loadUserList(){
     snapshot.forEach(userSnap=>{
       const u = userSnap.key;
       const val = userSnap.val();
-      if(u === currentUser || !val.online) return;
+      if(u===currentUser||!val.online) return;
       const div = document.createElement("div");
       div.textContent = u;
-      div.onclick=()=>{ currentChatUser = u; chatBox.innerHTML=""; listenMessages(); };
+      div.onclick=()=>{ currentChatUser=u; chatBox.innerHTML=""; listenMessages(); };
       userListDiv.appendChild(div);
     });
   });
@@ -143,55 +141,55 @@ function loadUserList(){
 /* ===== Chat Functions ===== */
 function listenMessages(){
   if(!currentChatUser) return;
-  const chatRef = db.ref('messages/'+currentUser+'_'+currentChatUser);
-  chatRef.off();
-  chatRef.on('child_added', snapshot=>{
-    const msg = snapshot.val();
-    if(msg.sender !== currentUser) addMessage(msg,'received');
+  const chatId = [currentUser,currentChatUser].sort().join("_");
+  db.ref('messages/'+chatId).off();
+  db.ref('messages/'+chatId).on('child_added',snap=>{
+    const msg = snap.val();
+    addMessage(msg, msg.sender===currentUser?'sent':'received');
   });
 }
 
 function addMessage(msg,type){
-  const div = document.createElement("div");
+  const div=document.createElement("div");
   div.className='message '+type;
-  if(msg.text.startsWith('[Image] ')){
-    const url = msg.text.replace('[Image] ','');
-    div.innerHTML = `<img src="${url}" style="max-width:100%;border-radius:10px;">`;
-  } else if(msg.text.startsWith('[Audio] ')){
-    const url = msg.text.replace('[Audio] ','');
-    div.innerHTML = `<audio controls src="${url}" style="width:100%;"></audio>`;
+  if(msg.type==='image'){
+    div.innerHTML=`<img src="${msg.text}" style="max-width:100%;border-radius:10px;">`;
+  } else if(msg.type==='audio'){
+    div.innerHTML=`<audio controls src="${msg.text}" style="width:100%;"></audio>`;
   } else {
-    div.textContent = msg.text;
+    div.textContent=msg.text;
   }
   chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
+  chatBox.scrollTop=chatBox.scrollHeight;
 }
 
+/* ===== Send Message ===== */
 sendBtn.onclick = () => {
   if(!currentChatUser) return alert("یک کاربر انتخاب کنید");
   const text = msgInput.value.trim();
   if(!text) return;
-  const msgData = {sender:currentUser,text:text,timestamp:Date.now()};
-  db.ref('messages/'+currentUser+'_'+currentChatUser).push(msgData);
-  db.ref('messages/'+currentChatUser+'_'+currentUser).push(msgData);
+  const chatId = [currentUser,currentChatUser].sort().join("_");
+  const msgData = {sender:currentUser,text:type=text,type:'text',timestamp:Date.now()};
+  db.ref('messages/'+chatId).push(msgData);
   addMessage(msgData,'sent');
   msgInput.value="";
 };
 
 /* ===== Send Image ===== */
 sendImgBtn.onclick = () => {
+  if(!currentChatUser) return alert("یک کاربر انتخاب کنید");
   const fileInput = document.createElement("input");
   fileInput.type="file";
   fileInput.accept="image/*";
-  fileInput.onchange = ()=>{
+  fileInput.onchange=()=>{
     const file = fileInput.files[0];
     if(!file) return;
     const storageRef = storage.ref('images/'+Date.now()+"_"+file.name);
-    storageRef.put(file).then(snapshot=>{
-      snapshot.ref.getDownloadURL().then(url=>{
-        const msgData = {sender:currentUser,text:'[Image] '+url,timestamp:Date.now()};
-        db.ref('messages/'+currentChatUser+'_'+currentUser).push(msgData);
-        db.ref('messages/'+currentUser+'_'+currentChatUser).push(msgData);
+    storageRef.put(file).then(snap=>{
+      snap.ref.getDownloadURL().then(url=>{
+        const chatId = [currentUser,currentChatUser].sort().join("_");
+        const msgData={sender:currentUser,text:url,type:'image',timestamp:Date.now()};
+        db.ref('messages/'+chatId).push(msgData);
         addMessage(msgData,'sent');
       });
     });
@@ -200,24 +198,28 @@ sendImgBtn.onclick = () => {
 };
 
 /* ===== Send Audio ===== */
-sendAudioBtn.onclick = () => {
-  if(!navigator.mediaDevices || !window.MediaRecorder){ alert("مرورگر شما از ضبط صدا پشتیبانی نمی‌کند"); return; }
+sendAudioBtn.onclick=()=>{
+  if(!currentChatUser) return alert("یک کاربر انتخاب کنید");
+  if(!navigator.mediaDevices||!window.MediaRecorder){ alert("مرورگر شما از ضبط صدا پشتیبانی نمی‌کند"); return; }
   navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
-    const mediaRecorder=new MediaRecorder(stream);
+    const recorder=new MediaRecorder(stream);
     let chunks=[];
-    mediaRecorder.ondataavailable=e=>{ chunks.push(e.data); };
-    mediaRecorder.onstop=e=>{
+    recorder.ondataavailable=e=>chunks.push(e.data);
+    recorder.onstop=e=>{
       const blob=new Blob(chunks,{type:'audio/webm'});
-      const url=URL.createObjectURL(blob);
-      const msgData={sender:currentUser,text:'[Audio] '+url,timestamp:Date.now()};
-      db.ref('messages/'+currentChatUser+'_'+currentUser).push(msgData);
-      db.ref('messages/'+currentUser+'_'+currentChatUser).push(msgData);
-      addMessage(msgData,'sent');
-      chunks=[];
+      const storageRef = storage.ref('audio/'+Date.now()+'.webm');
+      storageRef.put(blob).then(snap=>{
+        snap.ref.getDownloadURL().then(url=>{
+          const chatId=[currentUser,currentChatUser].sort().join("_");
+          const msgData={sender:currentUser,text:url,type:'audio',timestamp:Date.now()};
+          db.ref('messages/'+chatId).push(msgData);
+          addMessage(msgData,'sent');
+        });
+      });
     };
-    mediaRecorder.start();
-    alert("ضبط آغاز شد، پس از پایان OK را بزنید");
-    setTimeout(()=>{ mediaRecorder.stop(); stream.getTracks().forEach(t=>t.stop()); },5000);
+    recorder.start();
+    alert("ضبط آغاز شد. پس از پایان، OK را بزنید.");
+    setTimeout(()=>{ recorder.stop(); stream.getTracks().forEach(t=>t.stop()); },5000);
   });
 };
 
@@ -227,7 +229,6 @@ function convertToEmbed(link){
   if(match) return `https://www.tiktok.com/embed/${match[1]}`;
   return link;
 }
-
 addVideoBtn.onclick = () => {
   const link = videoLinkInput.value.trim();
   if(!link) return alert("لینک وارد کنید");
@@ -235,12 +236,11 @@ addVideoBtn.onclick = () => {
   db.ref('videos').push(embedLink);
   videoLinkInput.value="";
 };
-
 function loadVideos(){
-  db.ref('videos').on('value', snapshot=>{
+  db.ref('videos').on('value', snap=>{
     videoSection.innerHTML="";
-    snapshot.forEach(v=>{
-      const div = document.createElement("div");
+    snap.forEach(v=>{
+      const div=document.createElement("div");
       div.className='video-item';
       div.innerHTML=`<iframe src="${v.val()}" frameborder="0" allowfullscreen></iframe>`;
       videoSection.appendChild(div);
@@ -248,10 +248,8 @@ function loadVideos(){
   });
 }
 
-// Logout on close
-window.addEventListener('beforeunload',()=>{
-  if(currentUser) db.ref('users/'+currentUser+'/online').set(false);
-});
+// Logout
+window.addEventListener('beforeunload',()=>{ if(currentUser) db.ref('users/'+currentUser+'/online').set(false); });
 </script>
 </body>
-</html>
+</html> 
